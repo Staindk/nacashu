@@ -81,19 +81,23 @@ class ShutterAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() {}
 
-    /** Opens the camera. While learning, opens the phone's default camera instead of the saved one. */
+    /**
+     * Brings the camera to the front without resetting it: does nothing if it's already on
+     * screen, and resumes it as it was (mode, focus, zoom) when unlocked. While learning, opens
+     * the phone's default camera instead of the saved one.
+     */
     fun openCamera(learning: Boolean = false): Int {
-        val keyguard = getSystemService(KeyguardManager::class.java)
-        val action = if (keyguard?.isKeyguardLocked == true) {
-            MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE
-        } else {
-            MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA
-        }
-        val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (!learning && cameraRoot() != null) return ShutterProtocol.STATUS_OK
+        val locked = getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true
         val pkg = Settings.cameraPackage(this)
-        if (!learning && Intent(intent).setPackage(pkg).resolveActivity(packageManager) != null) {
-            intent.setPackage(pkg)
-        }
+        val intent = when {
+            // The lock screen only allows the secure camera.
+            locked -> cameraIntent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE, pkg)
+            learning -> cameraIntent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, null)
+            // Like tapping the app icon: resumes the camera's existing screen if it's still running.
+            else -> packageManager.getLaunchIntentForPackage(pkg)
+                ?: cameraIntent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, pkg)
+        }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {
             // Allowed from the background: a running accessibility service is exempt from
             // background activity launch restrictions.
@@ -103,6 +107,15 @@ class ShutterAccessibilityService : AccessibilityService() {
             Log.e(TAG, "Could not open camera", e)
             ShutterProtocol.STATUS_CAMERA_NOT_OPEN
         }
+    }
+
+    /** A camera intent aimed at [pkg] when that app handles it, else at the default camera. */
+    private fun cameraIntent(action: String, pkg: String?): Intent {
+        val intent = Intent(action)
+        if (pkg != null && Intent(intent).setPackage(pkg).resolveActivity(packageManager) != null) {
+            intent.setPackage(pkg)
+        }
+        return intent
     }
 
     fun pressShutter(onStatus: (Int) -> Unit) {
