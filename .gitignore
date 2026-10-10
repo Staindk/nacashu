@@ -1,0 +1,7 @@
+watch/build/
+watch/node_modules/
+watch/.lock-waf*
+builds/
+*.keystore
+*.jks
+local.properties
