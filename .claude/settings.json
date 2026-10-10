@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command // empty' | grep -Eq '(^|[^[:alnum:]_.-])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+push([[:space:]]|$)' && { echo 'Blocked: do not git push in this repo. Commit through the GitHub API so GitHub signs it (see CLAUDE.md).' >&2; exit 2; } || exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
