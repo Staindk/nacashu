@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "io.github.staindk.nacashu"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.staindk.nacashu"
