@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "io.github.staindk.nacashu"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.staindk.nacashu"
@@ -12,10 +12,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
-    }
-
-    buildFeatures {
-        aidl = true
     }
 
     buildTypes {
@@ -29,4 +25,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+kotlin {
+    jvmToolchain(17)
+}
+
+dependencies {
+    implementation(libs.pebblekit)
 }
