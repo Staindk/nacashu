@@ -19,6 +19,11 @@ static const int TIMER_OPTIONS[] = {1, 3, 10, 30};
 #define TIMER_OPTION_COUNT ((int)ARRAY_LENGTH(TIMER_OPTIONS))
 #define TIMER_DEFAULT_INDEX 1
 
+// Lefty layout, toggled by holding DOWN. PebbleOS has its own Left-Handed setting
+// (Settings > Display) that turns the screen and buttons round, but apps can't read it,
+// so the button labels are moved to the left here to stay next to the buttons.
+#define PERSIST_KEY_LEFTY 2
+
 static Window *s_window;
 static TextLayer *s_up_layer;
 static TextLayer *s_select_layer;
@@ -27,6 +32,7 @@ static TextLayer *s_status_layer;
 static AppTimer *s_countdown_timer;
 static int s_countdown;
 static int s_timer_index = TIMER_DEFAULT_INDEX;
+static bool s_lefty;
 static char s_status_buf[32];
 static char s_timer_label_buf[16];
 
@@ -106,11 +112,27 @@ static void prv_down_click(ClickRecognizerRef recognizer, void *context) {
   prv_send_cmd(CMD_OPEN_CAMERA);
 }
 
+static void prv_apply_lefty(void) {
+  const GTextAlignment align = s_lefty ? GTextAlignmentLeft : GTextAlignmentRight;
+  text_layer_set_text_alignment(s_up_layer, align);
+  text_layer_set_text_alignment(s_select_layer, align);
+  text_layer_set_text_alignment(s_down_layer, align);
+}
+
+static void prv_down_long_click(ClickRecognizerRef recognizer, void *context) {
+  s_lefty = !s_lefty;
+  persist_write_bool(PERSIST_KEY_LEFTY, s_lefty);
+  prv_apply_lefty();
+  prv_set_status(s_lefty ? "Lefty on" : "Lefty off");
+  vibes_short_pulse();
+}
+
 static void prv_click_config(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);
   window_long_click_subscribe(BUTTON_ID_UP, 0, prv_up_long_click, NULL);
   window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click);
+  window_long_click_subscribe(BUTTON_ID_DOWN, 0, prv_down_long_click, NULL);
 }
 
 static void prv_inbox_received(DictionaryIterator *iter, void *context) {
@@ -181,6 +203,7 @@ static void prv_window_load(Window *window) {
                            "Open camera", GTextAlignmentRight, FONT_KEY_GOTHIC_18);
   s_status_layer = prv_label(root, GRect(inset, mid + 14, w, 30), "Ready",
                              GTextAlignmentCenter, FONT_KEY_GOTHIC_24_BOLD);
+  prv_apply_lefty();
 }
 
 static void prv_window_unload(Window *window) {
@@ -191,6 +214,7 @@ static void prv_window_unload(Window *window) {
 }
 
 static void prv_init(void) {
+  s_lefty = persist_read_bool(PERSIST_KEY_LEFTY);
   if (persist_exists(PERSIST_KEY_TIMER_INDEX)) {
     const int index = persist_read_int(PERSIST_KEY_TIMER_INDEX);
     if (index >= 0 && index < TIMER_OPTION_COUNT) {

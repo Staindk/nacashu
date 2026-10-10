@@ -31,8 +31,10 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 1. Open **Nacashu** on the watch. The camera should open on the phone.
 2. The first time, the Pebble app may ask you to allow Nacashu (PebbleKit). Allow it.
 3. Press **SELECT** to take a photo. The watch shows "Done" and vibrates once.
-4. Press **DOWN** to start a 3-second countdown, then a photo. Press DOWN again to cancel.
-5. Press **UP** to bring the camera back to the front.
+4. Press **UP** to start a 3-second countdown, then a photo. Press UP again to cancel.
+5. Hold **UP** to change the delay (1, 3, 10, 30 s). The label changes and the choice is kept next time.
+6. Press **DOWN** to bring the camera back to the front.
+7. Lefty mode: turn on **Settings > Display > Orientation > Left-Handed** on the watch, open Nacashu, and hold **DOWN**. The labels move to the left, next to the buttons.
 
 Try the same with the phone locked. The camera opens in secure mode, and the shutter should still work.
 
