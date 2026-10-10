@@ -1,0 +1,34 @@
+{
+  "name": "nacashu",
+  "author": "Steyn",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "Nacashu",
+    "uuid": "24258afb-b38c-4325-a2ca-aad66022a81a",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "emery",
+      "flint",
+      "gabbro"
+    ],
+    "watchapp": {
+      "watchface": false
+    },
+    "resources": {
+      "media": []
+    },
+    "companionApp": {
+      "android": {
+        "url": "https://github.com/Staindk/nacashu",
+        "apps": [
+          {
+            "package": "io.github.staindk.nacashu"
+          }
+        ]
+      }
+    }
+  }
+}
