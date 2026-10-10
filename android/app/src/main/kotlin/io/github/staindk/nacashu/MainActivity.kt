@@ -38,6 +38,15 @@ class MainActivity : Activity() {
         addButton("1. Turn on accessibility service") {
             startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
         }
+        addButton("2. Learn my shutter") {
+            val service = ShutterAccessibilityService.instance
+            if (service == null) {
+                toast("Do step 1 first")
+            } else {
+                toast("Tap your camera's shutter button once")
+                service.startLearning()
+            }
+        }
 
         column.addView(CheckBox(this).apply {
             text = "Open camera when the watchapp starts"
@@ -75,9 +84,17 @@ class MainActivity : Activity() {
         super.onResume()
         val pebbleApp = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()
         val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
+        val learned = Settings.learnedShutter(this)
+        val shutter = when {
+            learned != null -> "learned (${learned.label ?: learned.viewId})"
+            Settings.cameraPackage(this) == Settings.PIXEL_CAMERA &&
+                packageManager.getLaunchIntentForPackage(Settings.PIXEL_CAMERA) != null -> "built in for Pixel Camera"
+            else -> "not set up (step 2)"
+        }
         status.text = "Accessibility service: $accessibility" +
             "\nPebble app: ${pebbleApp ?: "not found"}" +
             "\nCamera app: ${Settings.cameraPackage(this)}" +
+            "\nShutter: $shutter" +
             "\n\nOpen Nacashu on the watch, then press SELECT to take a photo."
     }
 

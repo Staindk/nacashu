@@ -18,10 +18,11 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 1. Go to **Settings › Apps › Nacashu**, open the ⋮ menu, and choose **Allow restricted settings**. Android 13 and newer block accessibility for sideloaded apps until you do this.
 2. Open **Nacashu**, tap **1. Turn on accessibility service**, and turn on "Nacashu".
 3. Back in Nacashu, check the top lines. They should say `Accessibility service: ON` and `Pebble app: coredevices.coreapp` (or similar).
+4. Tap **2. Learn my shutter**. Your phone's default camera opens. Tap its shutter button once (this takes a photo). A message says what it learned, and Nacashu's `Shutter:` line shows `learned (…)`. On a Pixel this step is optional, because Pixel Camera works out of the box.
 
 ## 3. Test the phone half without the watch
 
-1. Tap **Test: open camera, then shutter after 4s**. Pixel Camera should open and take a photo about 4 seconds later.
+1. Tap **Test: open camera, then shutter after 4s**. Your camera should open and take a photo about 4 seconds later.
    - A toast with **OK** means the button was found by its label or ID.
    - **OK (tapped by position)** means it fell back to tapping a screen position. That still works, but please share a dump (step 5).
    - **Camera is not on screen** or **Shutter button not found** means please share a dump.
@@ -38,7 +39,7 @@ Try the same with the phone locked. The camera opens in secure mode, and the shu
 
 ## 5. If something fails, share a dump
 
-1. With the accessibility service on, tap **Debug: dump camera screen after 5s** and switch to Pixel Camera.
+1. With the accessibility service on, tap **Debug: dump camera screen after 5s** and switch to your camera app.
 2. Come back and tap **Debug: share last dump**. Paste the text into a GitHub issue.
 
 If the watch shows "Phone app?" or nothing happens, run
@@ -51,6 +52,6 @@ If the watch shows "Phone app?" or nothing happens, run
 | Done | The shutter was clicked. |
 | Done (tap) | The shutter was tapped by screen position. |
 | Enable service | The accessibility service is off. |
-| Camera closed | Pixel Camera isn't on screen. Press UP. |
+| Camera closed | The camera app isn't on screen. Press UP. |
 | No shutter | The shutter wasn't found and the tap failed. |
 | Phone app? / No phone | The message didn't reach the phone. |
