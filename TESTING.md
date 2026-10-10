@@ -42,7 +42,7 @@ Try the same with the phone locked. The camera opens in secure mode, and the shu
 2. Come back and tap **Debug: share last dump**. Paste the text into a GitHub issue.
 
 If the watch shows "Phone app?" or nothing happens, run
-`adb logcat -s ShutterListener ShutterA11y PebbleKit2` while you press SELECT, and include the output in the issue.
+`adb logcat -s ShutterListener ShutterA11y BasePebbleListenerService` while you press SELECT, and include the output in the issue.
 
 ## What the watch shows
 
