@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nacashu</string>
+    <string name="a11y_label">Nacashu</string>
+    <string name="a11y_description">Lets your Pebble watch press the shutter button in your camera app. It only reads the camera screen to find the shutter button.</string>
+</resources>
