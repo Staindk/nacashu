@@ -44,10 +44,11 @@ class ShutterAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
 
     /**
-     * "Set shutter button": covers the screen with a see-through layer that catches one tap, then
-     * opens the chosen camera under it. The layer comes first so a quick tap can't reach the
-     * camera. Nacashu saves where the tap landed and which camera button is under it, then goes
-     * back to Nacashu. The layer goes away after that one tap, or after a minute.
+     * "Set shutter button": covers the screen with a see-through layer, then opens the chosen
+     * camera under it. The layer comes first, so no tap reaches the camera. Taps before the camera
+     * is on screen are ignored. The first tap after that is saved (where it landed and which
+     * camera button is under it), and 3 seconds later the layer goes away and Nacashu comes back
+     * to the front. With no tap, the same happens after a minute, and nothing is saved.
      */
     fun startLearning() {
         // Drop anything left from an earlier round, such as its pending trip back to Nacashu.
