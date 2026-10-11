@@ -4,15 +4,11 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
-import android.text.SpannableString
-import android.text.Spanned
-import android.text.style.TypefaceSpan
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -52,8 +48,8 @@ class MainActivity : Activity() {
         }
 
         // The header uses Silkscreen, the pixel font on the watchapp's spine (SIL Open Font License,
-        // see android/app/SILKSCREEN-OFL.txt), with "Pebble" in Roboto Condensed, one of the
-        // watch's own system fonts, which ships with Android.
+        // see android/app/SILKSCREEN-OFL.txt). Pebble's trademark rules allow the word "Pebble"
+        // in "for Pebble", but not its logo.
         column.addView(TextView(this).apply {
             text = "Nacashu"
             typeface = resources.getFont(R.font.silkscreen_bold)
@@ -65,10 +61,7 @@ class MainActivity : Activity() {
             setPixelTextSize(16f)
         })
         column.addView(TextView(this).apply {
-            text = SpannableString("for Pebble").apply {
-                val condensed = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
-                setSpan(TypefaceSpan(condensed), 4, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-            }
+            text = "for Pebble"
             typeface = resources.getFont(R.font.silkscreen)
             setPixelTextSize(14f)
             alpha = 0.6f
