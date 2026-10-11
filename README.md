@@ -50,17 +50,7 @@ docs/             Emulator screenshots.
 
 ### Signing
 
-CI signs the companion app with a permanent key, so each new APK installs as an update over the last one. The key lives only in two GitHub secrets, never in the repo. Without them, CI and local builds fall back to the standard Android debug key.
-
-To set it up (needs `keytool`, which comes with any JDK or Android Studio):
-
-```sh
-keytool -genkeypair -keystore nacashu.jks -alias nacashu -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Nacashu"
-base64 < nacashu.jks | tr -d '\n' | gh secret set NACASHU_KEYSTORE_BASE64 -R Staindk/nacashu
-gh secret set NACASHU_KEYSTORE_PASSWORD -R Staindk/nacashu   # the password you chose above
-```
-
-Keep `nacashu.jks` and its password backed up somewhere safe. Without them, a new key means everyone has to uninstall and reinstall.
+CI signs the companion app with a permanent key, so each new APK installs as an update over the last one. This is already set up: the key lives only in this repo's `NACASHU_KEYSTORE_BASE64` and `NACASHU_KEYSTORE_PASSWORD` secrets, never in the repo itself. Forks and local builds don't have those secrets, so they use the standard Android debug key.
 
 ### Build files you might wonder about
 
