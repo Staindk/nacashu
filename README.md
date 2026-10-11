@@ -9,7 +9,7 @@ Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu
   DOWN   = open camera ◀── status (vibrate) ──  clicks the camera's shutter button
 ```
 
-Hold **UP** to cycle the timer through 1, 3, 10 and 30 seconds. Hold **DOWN** to move the button labels to the left for lefty mode (turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed** first; apps can't read that setting).
+Hold **UP** to cycle the timer through 1, 3, 10 and 30 seconds. For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then tick **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting).
 
 Status: early proof of concept. It works on a Pixel with a Pebble Time 2, including from the lock screen.
 

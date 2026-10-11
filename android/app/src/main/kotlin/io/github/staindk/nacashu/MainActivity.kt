@@ -47,6 +47,15 @@ class MainActivity : Activity() {
             }
         })
 
+        column.addView(CheckBox(this).apply {
+            text = "Lefty: button labels on the left of the watch screen " +
+                "(for the watch's Settings > Display > Orientation > Left-Handed)"
+            isChecked = Settings.lefty(this@MainActivity)
+            setOnCheckedChangeListener { _, checked ->
+                Settings.setLefty(this@MainActivity, checked)
+            }
+        })
+
         addButton("Test: open camera") {
             runCommand(ShutterProtocol.CMD_OPEN_CAMERA, 0)
         }

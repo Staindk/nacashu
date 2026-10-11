@@ -19,6 +19,14 @@ object Settings {
         prefs(context).edit().putBoolean("auto_open_camera", value).apply()
     }
 
+    /** Button labels on the left of the watch screen, for PebbleOS's Left-Handed mode. */
+    fun lefty(context: Context): Boolean =
+        prefs(context).getBoolean("lefty", false)
+
+    fun setLefty(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("lefty", value).apply()
+    }
+
     /** Centre of the shutter the last time it was found, used when it can't be found again. */
     fun tapPoint(context: Context): Pair<Float, Float>? {
         val p = prefs(context)

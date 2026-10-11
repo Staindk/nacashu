@@ -3,6 +3,7 @@
 // AppMessage keys and values. Must match ShutterProtocol.kt in the Android app.
 #define KEY_CMD    1
 #define KEY_STATUS 2
+#define KEY_LEFTY  3
 
 #define CMD_SHUTTER     1
 #define CMD_OPEN_CAMERA 2
@@ -19,9 +20,9 @@ static const int TIMER_OPTIONS[] = {1, 3, 10, 30};
 #define TIMER_OPTION_COUNT ((int)ARRAY_LENGTH(TIMER_OPTIONS))
 #define TIMER_DEFAULT_INDEX 1
 
-// Lefty layout, toggled by holding DOWN. PebbleOS has its own Left-Handed setting
-// (Settings > Display) that turns the screen and buttons round, but apps can't read it,
-// so the button labels are moved to the left here to stay next to the buttons.
+// Lefty layout, set in the phone app and sent with every phone message. PebbleOS has its own
+// Left-Handed setting (Settings > Display) that turns the screen and buttons round, but apps
+// can't read it, so the button labels are moved to the left here to stay next to the buttons.
 #define PERSIST_KEY_LEFTY 2
 
 static Window *s_window;
@@ -119,23 +120,21 @@ static void prv_apply_lefty(void) {
   text_layer_set_text_alignment(s_down_layer, align);
 }
 
-static void prv_down_long_click(ClickRecognizerRef recognizer, void *context) {
-  s_lefty = !s_lefty;
-  persist_write_bool(PERSIST_KEY_LEFTY, s_lefty);
-  prv_apply_lefty();
-  prv_set_status(s_lefty ? "Lefty on" : "Lefty off");
-  vibes_short_pulse();
-}
-
 static void prv_click_config(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);
   window_long_click_subscribe(BUTTON_ID_UP, 0, prv_up_long_click, NULL);
   window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click);
-  window_long_click_subscribe(BUTTON_ID_DOWN, 0, prv_down_long_click, NULL);
 }
 
 static void prv_inbox_received(DictionaryIterator *iter, void *context) {
+  Tuple *lefty = dict_find(iter, KEY_LEFTY);
+  if (lefty && (lefty->value->uint8 != 0) != s_lefty) {
+    s_lefty = lefty->value->uint8 != 0;
+    persist_write_bool(PERSIST_KEY_LEFTY, s_lefty);
+    prv_apply_lefty();
+  }
+
   Tuple *status = dict_find(iter, KEY_STATUS);
   if (!status) {
     return;

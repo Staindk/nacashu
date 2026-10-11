@@ -40,6 +40,7 @@ class ShutterListenerService : BasePebbleListenerService() {
 
     override fun onAppOpened(watchappUUID: UUID, watch: WatchIdentifier) {
         if (watchappUUID != ShutterProtocol.WATCHAPP_UUID) return
+        sendToWatch(watch)
         val service = ShutterAccessibilityService.instance
         if (service != null && Settings.autoOpenCamera(this)) {
             service.openCamera()
@@ -51,13 +52,15 @@ class ShutterListenerService : BasePebbleListenerService() {
         super.onDestroy()
     }
 
-    private fun sendStatus(status: Int, watch: WatchIdentifier) {
+    private fun sendStatus(status: Int, watch: WatchIdentifier) =
+        sendToWatch(watch, ShutterProtocol.KEY_STATUS to PebbleDictionaryItem.UInt8(status.toUByte()))
+
+    /** Every message also carries the lefty setting, so the watch picks up changes made here. */
+    private fun sendToWatch(watch: WatchIdentifier, vararg items: Pair<UInt, PebbleDictionaryItem>) {
+        val lefty = PebbleDictionaryItem.UInt8(if (Settings.lefty(this)) 1u else 0u)
+        val data: PebbleDictionary = mapOf(ShutterProtocol.KEY_LEFTY to lefty) + items
         coroutineScope.launch {
-            sender.sendDataToPebble(
-                ShutterProtocol.WATCHAPP_UUID,
-                mapOf(ShutterProtocol.KEY_STATUS to PebbleDictionaryItem.UInt8(status.toUByte())),
-                listOf(watch),
-            )
+            sender.sendDataToPebble(ShutterProtocol.WATCHAPP_UUID, data, listOf(watch))
         }
     }
 

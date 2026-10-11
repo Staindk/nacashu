@@ -8,6 +8,8 @@ object ShutterProtocol {
 
     const val KEY_CMD = 1u
     const val KEY_STATUS = 2u
+    /** Phone to watch: 1 puts the button labels on the left (lefty mode), 0 on the right. */
+    const val KEY_LEFTY = 3u
 
     const val CMD_SHUTTER = 1
     const val CMD_OPEN_CAMERA = 2
