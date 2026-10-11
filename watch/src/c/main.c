@@ -14,9 +14,10 @@
 #define STATUS_SHUTTER_NOT_FOUND 3
 #define STATUS_GESTURE_FALLBACK 4
 
-// Timer delays cycled by holding UP. The chosen one is saved on the watch.
-#define PERSIST_KEY_TIMER_INDEX 1
-static const int TIMER_OPTIONS[] = {1, 3, 10, 30};
+// Timer delays cycled by holding UP. The chosen delay in seconds is saved on the watch.
+// Key 1 held an index into an older list of options, so it's no longer read.
+#define PERSIST_KEY_TIMER_SECONDS 3
+static const int TIMER_OPTIONS[] = {1, 3, 5, 10, 30};
 #define TIMER_OPTION_COUNT ((int)ARRAY_LENGTH(TIMER_OPTIONS))
 #define TIMER_DEFAULT_INDEX 1
 
@@ -30,7 +31,7 @@ static const int TIMER_OPTIONS[] = {1, 3, 10, 30};
 
 static Window *s_window;
 static TextLayer *s_up_layer;
-static TextLayer *s_up_hint_layer;
+static Layer *s_picker_layer;
 static Layer *s_shutter_layer;
 static BitmapLayer *s_name_layer;
 static GBitmap *s_name_down;
@@ -44,7 +45,6 @@ static int s_countdown;
 static int s_timer_index = TIMER_DEFAULT_INDEX;
 static bool s_lefty;
 static char s_status_buf[32];
-static char s_timer_label_buf[16];
 
 // The status sits beside the shutter, centred on it, and wraps to two lines when it's long.
 static void prv_show_status_text(void) {
@@ -119,10 +119,43 @@ static bool prv_cancel_countdown(void) {
   return true;
 }
 
-static void prv_update_timer_label(void) {
-  snprintf(s_timer_label_buf, sizeof(s_timer_label_buf), "%ds timer",
-           TIMER_OPTIONS[s_timer_index]);
-  text_layer_set_text(s_up_layer, s_timer_label_buf);
+// All the delays in a row next to UP, with the chosen one bold on a white pill.
+static void prv_picker_update(Layer *layer, GContext *ctx) {
+  const GRect b = layer_get_bounds(layer);
+  const GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
+  const GFont bold = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+  const int16_t gap = b.size.w > 150 ? 9 : 6;
+  const int16_t pad = 4;
+  char text[TIMER_OPTION_COUNT][4];
+  int16_t widths[TIMER_OPTION_COUNT];
+  int16_t total = gap * (TIMER_OPTION_COUNT - 1);
+  for (int i = 0; i < TIMER_OPTION_COUNT; i++) {
+    snprintf(text[i], sizeof(text[i]), "%d", TIMER_OPTIONS[i]);
+    const bool chosen = i == s_timer_index;
+    widths[i] = graphics_text_layout_get_content_size(
+        text[i], chosen ? bold : font, b, GTextOverflowModeFill, GTextAlignmentLeft).w;
+    if (chosen) {
+      widths[i] += 2 * pad;
+    }
+    total += widths[i];
+  }
+
+  int16_t x = s_lefty ? 0 : b.size.w - total;
+  for (int i = 0; i < TIMER_OPTION_COUNT; i++) {
+    const bool chosen = i == s_timer_index;
+    GRect box = GRect(x, 0, widths[i], b.size.h);
+    if (chosen) {
+      graphics_context_set_fill_color(ctx, GColorWhite);
+      graphics_fill_rect(ctx, box, 4, GCornersAll);
+      graphics_context_set_text_color(ctx, GColorBlack);
+    } else {
+      graphics_context_set_text_color(ctx, GColorWhite);
+    }
+    box.origin.y -= 3;  // Gothic has extra space above the digits.
+    graphics_draw_text(ctx, text[i], chosen ? bold : font, box, GTextOverflowModeFill,
+                       GTextAlignmentCenter, NULL);
+    x += widths[i] + gap;
+  }
 }
 
 static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
@@ -141,8 +174,8 @@ static void prv_up_click(ClickRecognizerRef recognizer, void *context) {
 static void prv_up_long_click(ClickRecognizerRef recognizer, void *context) {
   prv_cancel_countdown();
   s_timer_index = (s_timer_index + 1) % TIMER_OPTION_COUNT;
-  persist_write_int(PERSIST_KEY_TIMER_INDEX, s_timer_index);
-  prv_update_timer_label();
+  persist_write_int(PERSIST_KEY_TIMER_SECONDS, TIMER_OPTIONS[s_timer_index]);
+  layer_mark_dirty(s_picker_layer);
   prv_set_status("Timer set");
   vibes_short_pulse();
 }
@@ -166,7 +199,7 @@ static void prv_shutter_update(Layer *layer, GContext *ctx) {
 static void prv_apply_lefty(void) {
   const GTextAlignment align = s_lefty ? GTextAlignmentLeft : GTextAlignmentRight;
   text_layer_set_text_alignment(s_up_layer, align);
-  text_layer_set_text_alignment(s_up_hint_layer, align);
+  layer_mark_dirty(s_picker_layer);
   text_layer_set_text_alignment(s_down_layer, align);
 
   const GRect b = layer_get_bounds(window_get_root_layer(s_window));
@@ -264,11 +297,12 @@ static void prv_window_load(Window *window) {
   const int16_t w = b.size.w - 2 * inset;
 
   window_set_background_color(window, GColorBlack);
-  s_up_layer = prv_label(root, GRect(inset, PBL_IF_ROUND_ELSE(30, 8), w, 24), "",
+  const int16_t top = PBL_IF_ROUND_ELSE(30, 6);
+  s_up_layer = prv_label(root, GRect(inset, top, w, 24), "Timer (sec)",
                          GTextAlignmentRight, FONT_KEY_GOTHIC_18);
-  s_up_hint_layer = prv_label(root, GRect(inset, PBL_IF_ROUND_ELSE(30, 8) + 22, w, 18),
-                              "hold to change", GTextAlignmentRight, FONT_KEY_GOTHIC_14);
-  prv_update_timer_label();
+  s_picker_layer = layer_create(GRect(inset, top + 24, w, 22));
+  layer_set_update_proc(s_picker_layer, prv_picker_update);
+  layer_add_child(root, s_picker_layer);
   s_shutter_layer = layer_create(GRectZero);
   layer_set_update_proc(s_shutter_layer, prv_shutter_update);
   layer_add_child(root, s_shutter_layer);
@@ -288,7 +322,7 @@ static void prv_window_load(Window *window) {
 
 static void prv_window_unload(Window *window) {
   text_layer_destroy(s_up_layer);
-  text_layer_destroy(s_up_hint_layer);
+  layer_destroy(s_picker_layer);
   layer_destroy(s_shutter_layer);
   bitmap_layer_destroy(s_name_layer);
   gbitmap_destroy(s_name_down);
@@ -299,10 +333,10 @@ static void prv_window_unload(Window *window) {
 
 static void prv_init(void) {
   s_lefty = persist_read_bool(PERSIST_KEY_LEFTY);
-  if (persist_exists(PERSIST_KEY_TIMER_INDEX)) {
-    const int index = persist_read_int(PERSIST_KEY_TIMER_INDEX);
-    if (index >= 0 && index < TIMER_OPTION_COUNT) {
-      s_timer_index = index;
+  const int seconds = persist_read_int(PERSIST_KEY_TIMER_SECONDS);
+  for (int i = 0; i < TIMER_OPTION_COUNT; i++) {
+    if (TIMER_OPTIONS[i] == seconds) {
+      s_timer_index = i;
     }
   }
   app_message_register_inbox_received(prv_inbox_received);

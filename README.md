@@ -9,7 +9,7 @@ Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu
   DOWN   = open camera ◀── status (vibrate) ──  clicks the camera's shutter button
 ```
 
-Hold **UP** to cycle the timer through 1, 3, 10 and 30 seconds.
+Hold **UP** to cycle the timer through 1, 3, 5, 10 and 30 seconds. The watch shows all of them in a row, with the chosen one on a white pill.
 
 For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then tick **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring in https://github.com/Staindk/nacashu/issues/6).
 
