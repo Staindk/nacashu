@@ -15,6 +15,10 @@ For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left
 
 Status: early proof of concept. It works on a Pixel with a Pebble Time 2, including from the lock screen.
 
+| Pebble Time 2 (emery) | Pebble 2 Duo (flint) | Pebble Round 2 (gabbro) |
+|:---:|:---:|:---:|
+| ![emery](docs/emery-1-ready.png) | ![flint](docs/flint-1-ready.png) | ![gabbro](docs/gabbro-1-ready.png) |
+
 ## How it works
 
 - **Watchapp** (`watch/`, C): sends a command when you press a button, and shows and vibrates the result.
@@ -42,7 +46,7 @@ The companion app asks for accessibility access, so it's kept small enough to re
 watch/            Watchapp (Pebble SDK 3). Targets emery (Time 2), flint (Core 2 Duo), gabbro (Round 2).
 watch/tools/      fake_phone.py: plays the phone side against the emulator.
 android/          Companion app (Kotlin, minSdk 29).
-docs/             Emulator screenshots.
+docs/             Emulator screenshots (CI uploads fresh ones on every run).
 .github/          CI: builds the .pbw and .apk for pull requests and main.
 ```
 
