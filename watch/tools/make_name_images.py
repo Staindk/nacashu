@@ -2,6 +2,9 @@
 # Draws the app name as a white spine along the screen edge, one size per screen. The Pebble
 # SDK can't draw rotated text, so the name ships as small images. Needs Pillow.
 # Silkscreen is under the SIL Open Font License: https://fonts.google.com/specimen/Silkscreen
+#
+# Nothing runs this automatically: the build and CI use the PNGs committed in resources/images.
+# After changing this script, run it by hand and commit the regenerated images with it.
 import os, sys
 from PIL import Image, ImageDraw, ImageFont
 
