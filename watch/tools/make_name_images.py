@@ -12,7 +12,7 @@ NAME = "NACASHU"
 SCREENS = {
     "large": (228, 28, (3, 4), 4, None),
     "small": (168, 22, (2, 3), 4, None),
-    "round": (260, 46, (3, 4), 2, 6),
+    "round": (260, 46, (2, 4), 4, 5),
 }
 
 font = ImageFont.truetype(sys.argv[1], 8)  # Silkscreen's native pixel size
