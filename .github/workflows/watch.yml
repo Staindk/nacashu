@@ -10,11 +10,21 @@ on:
       - '.github/workflows/watch.yml'
   workflow_dispatch:
 
+# A newer push to the same PR replaces this run, so two runs never race to commit screenshots.
+concurrency:
+  group: watch-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   watchapp:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # On a PR, build the branch itself (not GitHub's merge preview) so screenshots can be committed back to it.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: astral-sh/setup-uv@v6
       - name: Install Pebble SDK and emulator libraries
         run: |
@@ -50,3 +60,27 @@ jobs:
         with:
           name: screenshots
           path: shots/*.png
+      - name: Commit changed screenshots to the PR
+        # Only on PRs from this repo: fork PRs get a read-only token.
+        if: github.event_name == 'pull_request'
+        env:
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+          BRANCH: ${{ github.head_ref }}
+        run: |
+          # Compare pixels, not bytes, so a re-encoded but identical PNG isn't a change.
+          ~/.local/share/uv/tools/pebble-tool/bin/python watch/tools/update_screenshots.py shots docs
+          if [ -z "$(git status --porcelain -- docs)" ]; then
+            echo "Screenshots unchanged."
+            exit 0
+          fi
+          if [ "$SAME_REPO" != true ]; then
+            echo "::warning::Screenshots changed, but this PR is from a fork so CI can't commit them. Copy them from the screenshots artifact into docs/."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs
+          git commit -m 'Update emulator screenshots'
+          # Pushes made with the workflow's token don't start new workflow runs, so this can't loop.
+          git push origin "HEAD:refs/heads/$BRANCH" ||
+            echo "::warning::Couldn't push screenshots, probably because the branch moved. The next run will try again."
