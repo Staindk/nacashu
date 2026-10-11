@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">Nacashu</string>
     <string name="a11y_label">Nacashu</string>
-    <string name="a11y_description">Lets your Pebble watch press the shutter button in your camera app. It reads your camera app\'s screen only to find the shutter button when your watch asks. During one-time setup (\"Learn my shutter\"), it also notes the single button you tap in your camera, then stops listening.</string>
+    <string name="a11y_description">Lets your Pebble watch press the shutter button in your camera app. It reads your camera app\'s screen only to find the shutter button when your watch asks. During one-time setup (\"Learn my shutter\"), it shows a see-through layer over your camera and notes where you tap the shutter, then removes the layer.</string>
 </resources>

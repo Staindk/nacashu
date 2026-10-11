@@ -18,7 +18,8 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 1. Go to **Settings › Apps › Nacashu**, open the ⋮ menu, and choose **Allow restricted settings**. Android 13 and newer block accessibility for sideloaded apps until you do this.
 2. Open **Nacashu**, tap **1. Turn on accessibility service**, and turn on "Nacashu".
 3. Back in Nacashu, check the top lines. They should say `Accessibility service: ON` and `Pebble app: coredevices.coreapp` (or similar).
-4. Tap **2. Learn my shutter**. Your camera opens (if you have several camera apps, Android asks which one; pick the one you want Nacashu to use). Tap its shutter button once (this takes a photo). A message says what it learned, and Nacashu's `Shutter:` line shows `learned (…)`. On a Pixel this step is optional, because Pixel Camera works out of the box.
+4. Tap **2. Choose camera app** and pick the camera you want Nacashu to use.
+5. Tap **3. Learn my shutter**. Your camera opens, and a dark see-through layer with "tap your camera's shutter button once" covers it. Tap where the shutter is. This doesn't take a photo. The layer says what it learned and then disappears, and Nacashu's `Shutter:` line shows it. With Pixel Camera this step is optional, because it works out of the box.
 
 ## 3. Test the phone half without the watch
 

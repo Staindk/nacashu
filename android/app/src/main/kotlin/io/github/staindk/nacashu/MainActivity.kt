@@ -1,10 +1,13 @@
 package io.github.staindk.nacashu
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.MediaStore
 import android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
 import android.view.ViewGroup
 import android.view.Window
@@ -48,12 +51,12 @@ class MainActivity : Activity() {
         addButton("1. Turn on accessibility service") {
             startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
         }
-        addButton("2. Learn my shutter") {
+        addButton("2. Choose camera app") { chooseCamera() }
+        addButton("3. Learn my shutter") {
             val service = ShutterAccessibilityService.instance
             if (service == null) {
                 toast("Do step 1 first")
             } else {
-                toast("Pick your camera app if asked, then tap its shutter button once")
                 service.startLearning()
             }
         }
@@ -108,16 +111,39 @@ class MainActivity : Activity() {
         val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
         val learned = Settings.learnedShutter(this)
         val shutter = when {
-            learned != null -> "learned \"${learned.label ?: "no label"}\" (ID: ${learned.viewId ?: "none"})"
+            learned != null && (learned.label != null || learned.viewId != null) ->
+                "learned \"${learned.label ?: "no label"}\" (ID: ${learned.viewId ?: "none"})"
+            learned != null -> "learned its position on screen"
             Settings.cameraPackage(this) == Settings.PIXEL_CAMERA &&
                 packageManager.getLaunchIntentForPackage(Settings.PIXEL_CAMERA) != null -> "built in for Pixel Camera"
-            else -> "not set up (step 2)"
+            else -> "not set up (step 3)"
         }
         status.text = "Accessibility service: $accessibility" +
             "\nPebble app: ${pebbleApp ?: "not found"}" +
-            "\nCamera app: ${Settings.cameraPackage(this)}" +
+            "\nCamera app: ${appLabel(Settings.cameraPackage(this))}" +
             "\nShutter: $shutter" +
             "\n\nOpen Nacashu on the watch, then press SELECT to take a photo."
+    }
+
+    /** Lets the user pick which installed camera app Nacashu opens and presses. */
+    private fun chooseCamera() {
+        val cameras = packageManager.queryIntentActivities(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA), 0)
+            .map { it.activityInfo.packageName }
+            .distinct()
+        if (cameras.isEmpty()) return toast("No camera apps found")
+        AlertDialog.Builder(this)
+            .setTitle("Camera app")
+            .setItems(cameras.map(::appLabel).toTypedArray()) { _, which ->
+                Settings.setCameraPackage(this, cameras[which])
+                onResume()
+            }
+            .show()
+    }
+
+    private fun appLabel(pkg: String): String = try {
+        packageManager.getApplicationInfo(pkg, 0).loadLabel(packageManager).toString()
+    } catch (e: PackageManager.NameNotFoundException) {
+        "$pkg (not installed)"
     }
 
     private fun addButton(label: String, onClick: () -> Unit) {
