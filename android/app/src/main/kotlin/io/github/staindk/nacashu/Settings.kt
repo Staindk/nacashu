@@ -6,7 +6,7 @@ import android.content.SharedPreferences
 object Settings {
     const val PIXEL_CAMERA = "com.google.android.GoogleCamera"
 
-    /** The button under the user's tap in "Learn my shutter". Both are null if it had neither. */
+    /** The button under the user's tap in "Set shutter button". Both are null if it had neither. */
     data class LearnedShutter(val viewId: String?, val label: String?)
 
     private fun prefs(context: Context): SharedPreferences =
@@ -30,7 +30,7 @@ object Settings {
         prefs(context).edit().putBoolean("lefty", value).apply()
     }
 
-    /** The learned shutter, or null if "Learn my shutter" hasn't been done for this camera. */
+    /** The learned shutter, or null if "Set shutter button" hasn't been done for this camera. */
     fun learnedShutter(context: Context): LearnedShutter? {
         val p = prefs(context)
         if (!p.contains("shutter_learned")) return null
@@ -46,7 +46,7 @@ object Settings {
             .apply()
     }
 
-    /** Saves what the user tapped in "Learn my shutter" for the current camera app. */
+    /** Saves what the user tapped in "Set shutter button" for the current camera app. */
     fun saveLearnedShutter(context: Context, shutter: LearnedShutter, tap: Pair<Float, Float>) {
         prefs(context).edit()
             .putBoolean("shutter_learned", true)

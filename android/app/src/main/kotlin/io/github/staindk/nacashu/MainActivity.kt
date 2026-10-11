@@ -59,7 +59,7 @@ class MainActivity : Activity() {
             startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
         }
         addButton("2. Choose camera app") { chooseCamera() }
-        addButton("3. Learn my shutter") {
+        addButton("3. Set shutter button") {
             val service = ShutterAccessibilityService.instance
             if (service == null) {
                 toast("Do step 1 first")
@@ -128,8 +128,8 @@ class MainActivity : Activity() {
         val learned = Settings.learnedShutter(this)
         val shutter = when {
             learned != null && (learned.label != null || learned.viewId != null) ->
-                "learned \"${learned.label ?: "no label"}\" (ID: ${learned.viewId ?: "none"})"
-            learned != null -> "learned its position on screen"
+                "set to \"${learned.label ?: "no label"}\" (ID: ${learned.viewId ?: "none"})"
+            learned != null -> "set to a position on screen"
             Settings.cameraPackage(this) == Settings.PIXEL_CAMERA &&
                 packageManager.getLaunchIntentForPackage(Settings.PIXEL_CAMERA) != null -> "built in for Pixel Camera"
             else -> "not set up (step 3)"
