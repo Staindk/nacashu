@@ -29,7 +29,7 @@ Status: early proof of concept. It works on a Pixel with a Pebble Time 2, includ
 The companion app asks for accessibility access, so it's kept small enough to read in one sitting:
 
 - Its only dependency is the official [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2) library, and it has no internet permission.
-- It only reads the camera app's screen, and only when the watch asks it to press the shutter.
+- It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Learn my shutter** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot. The layer disappears after that one tap, or after a minute.
 - The setup screen uses plain Android views, so there's no UI library to read through.
 
 ## Layout
@@ -65,7 +65,7 @@ See [TESTING.md](TESTING.md).
 
 ## Known gaps
 
-- **Shutter detection.** It's tuned for Pixel Camera, using the shutter's view IDs and its "take photo" label. If neither matches, it taps where the shutter was last found. Other camera apps will need a "learn my shutter" setup step, which is planned.
+- **Shutter detection.** Pixel Camera works out of the box. For other camera apps, choose the camera in Nacashu, tap **Learn my shutter**, and tap the shutter once on the see-through layer. Nacashu remembers that button, or just that spot on the screen if the camera doesn't expose the button. Please share the view IDs of other cameras (TESTING.md shows how) so they can work out of the box too.
 
 ## Trademarks
 

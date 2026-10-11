@@ -5,12 +5,20 @@ import android.accessibilityservice.GestureDescription
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.graphics.Path
+import android.graphics.PixelFormat
 import android.graphics.Rect
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
+import android.view.Gravity
+import android.view.MotionEvent
+import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.widget.TextView
 import java.io.File
 import java.io.IOException
 
@@ -19,32 +27,125 @@ import java.io.IOException
  * screen reader) would. The camera app still takes the photo, so all of its processing applies.
  */
 class ShutterAccessibilityService : AccessibilityService() {
+    private val handler = Handler(Looper.getMainLooper())
+    private var overlay: TextView? = null
+    private val learningTimedOut = Runnable { finishLearning("No tap seen, so nothing was learned. Please try again.") }
 
     override fun onServiceConnected() {
         instance = this
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
+        removeOverlay()
         instance = null
         return super.onUnbind(intent)
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
 
+    /**
+     * "Learn my shutter": opens the chosen camera, then covers it with a see-through layer that
+     * catches one tap. The tap doesn't reach the camera. Nacashu saves where it landed and which
+     * camera button is under it. The layer goes away after that one tap, or after a minute.
+     */
+    fun startLearning() {
+        removeOverlay()
+        openCamera()
+        // Give the camera a moment to come up before covering it.
+        handler.postDelayed({ showLearnOverlay() }, 1500)
+        handler.postDelayed(learningTimedOut, LEARN_TIMEOUT_MS)
+    }
+
+    private fun showLearnOverlay() {
+        val view = TextView(this).apply {
+            text = "Nacashu: tap your camera's shutter button once"
+            textSize = 20f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(0x66000000)
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(48, 240, 48, 0)
+            setOnTouchListener { _, event ->
+                if (event.action == MotionEvent.ACTION_UP) learnAt(event.rawX, event.rawY)
+                true
+            }
+        }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+            PixelFormat.TRANSLUCENT,
+        )
+        getSystemService(WindowManager::class.java).addView(view, params)
+        overlay = view
+    }
+
+    private fun learnAt(x: Float, y: Float) {
+        val node = cameraRoot()?.let { nodeAt(it, x.toInt(), y.toInt()) }
+        val label = (node?.contentDescription ?: node?.text)?.toString()?.takeIf { it.isNotBlank() }
+        val shutter = Settings.LearnedShutter(node?.viewIdResourceName, label)
+        Settings.saveLearnedShutter(this, shutter, x to y)
+        Log.i(TAG, "Learned shutter at ($x, $y): $shutter")
+        finishLearning("Learned: ${label ?: shutter.viewId ?: "that spot on the screen"}")
+    }
+
+    /** Shows [message] on the layer for a moment, then removes it. */
+    private fun finishLearning(message: String) {
+        handler.removeCallbacks(learningTimedOut)
+        val view = overlay ?: return
+        view.text = message
+        view.setOnTouchListener(null)
+        handler.postDelayed({ removeOverlay() }, 1500)
+    }
+
+    private fun removeOverlay() {
+        overlay?.let { getSystemService(WindowManager::class.java).removeView(it) }
+        overlay = null
+    }
+
+    /**
+     * The smallest visible node under the point, preferring clickable ones. Ignores anything
+     * bigger than a quarter of the camera screen (such as the preview), because that isn't a
+     * button; the tapped position is used then.
+     */
+    private fun nodeAt(root: AccessibilityNodeInfo, x: Int, y: Int): AccessibilityNodeInfo? {
+        val screen = Rect().also(root::getBoundsInScreen)
+        val maxArea = screen.width().toLong() * screen.height() / 4
+        var best: AccessibilityNodeInfo? = null
+        var bestScore = Long.MAX_VALUE
+        fun visit(node: AccessibilityNodeInfo) {
+            val bounds = Rect().also(node::getBoundsInScreen)
+            if (!node.isVisibleToUser || !bounds.contains(x, y)) return
+            val area = bounds.width().toLong() * bounds.height()
+            // Any clickable node beats any non-clickable one.
+            val score = if (node.isClickable) area else area + Int.MAX_VALUE
+            if (area <= maxArea && score < bestScore) {
+                best = node
+                bestScore = score
+            }
+            for (i in 0 until node.childCount) node.getChild(i)?.let(::visit)
+        }
+        visit(root)
+        return best
+    }
+
     override fun onInterrupt() {}
 
+    /**
+     * Brings the chosen camera to the front without resetting it: does nothing if it's already on
+     * screen, and resumes it as it was (mode, focus, zoom) when unlocked.
+     */
     fun openCamera(): Int {
-        val keyguard = getSystemService(KeyguardManager::class.java)
-        val action = if (keyguard?.isKeyguardLocked == true) {
-            MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE
-        } else {
-            MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA
-        }
-        val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (cameraRoot() != null) return ShutterProtocol.STATUS_OK
+        val locked = getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true
         val pkg = Settings.cameraPackage(this)
-        if (Intent(intent).setPackage(pkg).resolveActivity(packageManager) != null) {
-            intent.setPackage(pkg)
-        }
+        val intent = when {
+            // The lock screen only allows the secure camera.
+            locked -> cameraIntent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA_SECURE, pkg)
+            // Like tapping the app icon: resumes the camera's existing screen if it's still running.
+            else -> packageManager.getLaunchIntentForPackage(pkg)
+                ?: cameraIntent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA, pkg)
+        }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return try {
             // Allowed from the background: a running accessibility service is exempt from
             // background activity launch restrictions.
@@ -56,12 +157,22 @@ class ShutterAccessibilityService : AccessibilityService() {
         }
     }
 
+    /** A camera intent aimed at [pkg] when that app handles it, else at the default camera. */
+    private fun cameraIntent(action: String, pkg: String): Intent {
+        val intent = Intent(action)
+        if (Intent(intent).setPackage(pkg).resolveActivity(packageManager) != null) {
+            intent.setPackage(pkg)
+        }
+        return intent
+    }
+
     fun pressShutter(onStatus: (Int) -> Unit) {
         val root = cameraRoot() ?: return onStatus(ShutterProtocol.STATUS_CAMERA_NOT_OPEN)
 
         val shutter = findShutter(root)
         if (shutter != null) {
-            val target = clickableAncestor(shutter)
+            // A learned button is exactly what the user tapped; don't widen it to a parent.
+            val target = if (Settings.learnedShutter(this) != null) shutter else clickableAncestor(shutter)
             val bounds = Rect().also { target.getBoundsInScreen(it) }
             if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                 Settings.saveTapPoint(this, bounds.exactCenterX(), bounds.exactCenterY())
@@ -103,21 +214,31 @@ class ShutterAccessibilityService : AccessibilityService() {
         return rootInActiveWindow?.takeIf { it.packageName?.toString() == pkg }
     }
 
+    /**
+     * Once a shutter has been learned, only that is used: its view ID, then its label. When
+     * neither is found this returns null and the caller taps the learned position. Built-in IDs
+     * and shutter-like labels are only for cameras that haven't been learned.
+     */
     private fun findShutter(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        for (id in SHUTTER_VIEW_IDS) {
-            root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }
-                ?.let { return it }
+        val learned = Settings.learnedShutter(this)
+        if (learned != null) {
+            learned.viewId?.let { id ->
+                root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }?.let { return it }
+            }
+            return learned.label?.let { label -> findNode(root) { it.equals(label, ignoreCase = true) } }
         }
-        return findByDescription(root)
+        for (id in KNOWN_SHUTTER_IDS[root.packageName?.toString()].orEmpty()) {
+            root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }?.let { return it }
+        }
+        return findNode(root) { text -> SHUTTER_LABELS.any { it in text.lowercase() } }
     }
 
-    private fun findByDescription(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        val desc = node.contentDescription?.toString()?.lowercase()
-        if (desc != null && node.isVisibleToUser && SHUTTER_DESCRIPTIONS.any { it in desc }) {
-            return node
-        }
+    /** Depth-first search for a visible node whose label (description or text) matches. */
+    private fun findNode(node: AccessibilityNodeInfo, matches: (String) -> Boolean): AccessibilityNodeInfo? {
+        val label = (node.contentDescription ?: node.text)?.toString()
+        if (label != null && node.isVisibleToUser && matches(label)) return node
         for (i in 0 until node.childCount) {
-            val found = node.getChild(i)?.let { findByDescription(it) }
+            val found = node.getChild(i)?.let { findNode(it, matches) }
             if (found != null) return found
         }
         return null
@@ -167,12 +288,17 @@ class ShutterAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "ShutterA11y"
 
-        // Pixel Camera's shutter; confirm others with "Dump camera screen" on a real device.
-        private val SHUTTER_VIEW_IDS = listOf(
-            "com.google.android.GoogleCamera:id/shutter_button",
-            "com.google.android.GoogleCamera:id/shutter",
+        private const val LEARN_TIMEOUT_MS = 60_000L
+
+        // Built-in shutter view IDs per camera app, so these work without "Learn my shutter".
+        // Add more as people report them (the "Dump camera screen" button shows the IDs).
+        private val KNOWN_SHUTTER_IDS = mapOf(
+            Settings.PIXEL_CAMERA to listOf(
+                "com.google.android.GoogleCamera:id/shutter_button",
+                "com.google.android.GoogleCamera:id/shutter",
+            ),
         )
-        private val SHUTTER_DESCRIPTIONS = listOf("take photo", "shutter", "take picture", "capture")
+        private val SHUTTER_LABELS = listOf("take photo", "shutter", "take picture", "capture")
 
         @Volatile
         var instance: ShutterAccessibilityService? = null
