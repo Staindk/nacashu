@@ -24,6 +24,42 @@ jobs:
           name: nacashu-watchapp
           path: watch/build/*.pbw
 
+  screenshots:
+    needs: watchapp
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [emery, flint, gabbro]
+    steps:
+      - uses: astral-sh/setup-uv@v6
+      - name: Install Pebble SDK
+        run: |
+          uv tool install pebble-tool
+          pebble sdk install latest
+      - uses: actions/download-artifact@v4
+        with:
+          name: nacashu-watchapp
+      - name: Take emulator screenshots
+        env:
+          EMU: --emulator ${{ matrix.platform }}
+        run: |
+          mkdir shots
+          start=$SECONDS
+          pebble install $EMU ./*.pbw
+          echo "Emulator boot and install: $((SECONDS - start))s"
+          sleep 2
+          pebble screenshot $EMU --no-open shots/1-ready.png
+          pebble emu-button $EMU click select
+          sleep 1
+          pebble screenshot $EMU --no-open shots/2-snap.png
+          echo "Total: $((SECONDS - start))s"
+          pebble kill
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.platform }}
+          path: shots/*.png
+
   android:
     runs-on: ubuntu-latest
     steps:
