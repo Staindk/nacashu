@@ -119,7 +119,7 @@ static bool prv_cancel_countdown(void) {
   return true;
 }
 
-// All the delays in a row next to UP, with the chosen one bold on a coloured pill.
+// All the delays in a row next to UP, with the chosen one bold on a white pill.
 static void prv_picker_update(Layer *layer, GContext *ctx) {
   const GRect b = layer_get_bounds(layer);
   const GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
@@ -145,11 +145,11 @@ static void prv_picker_update(Layer *layer, GContext *ctx) {
     const bool chosen = i == s_timer_index;
     GRect box = GRect(x, 0, widths[i], b.size.h);
     if (chosen) {
-      graphics_context_set_fill_color(ctx, PBL_IF_COLOR_ELSE(GColorRed, GColorWhite));
+      graphics_context_set_fill_color(ctx, GColorWhite);
       graphics_fill_rect(ctx, box, 4, GCornersAll);
-      graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorWhite, GColorBlack));
+      graphics_context_set_text_color(ctx, GColorBlack);
     } else {
-      graphics_context_set_text_color(ctx, PBL_IF_COLOR_ELSE(GColorLightGray, GColorWhite));
+      graphics_context_set_text_color(ctx, GColorWhite);
     }
     box.origin.y -= 3;  // Gothic has extra space above the digits.
     graphics_draw_text(ctx, text[i], chosen ? bold : font, box, GTextOverflowModeFill,
@@ -298,9 +298,9 @@ static void prv_window_load(Window *window) {
 
   window_set_background_color(window, GColorBlack);
   const int16_t top = PBL_IF_ROUND_ELSE(30, 6);
-  s_up_layer = prv_label(root, GRect(inset, top, w, 18), "Timer, hold to change",
-                         GTextAlignmentRight, FONT_KEY_GOTHIC_14);
-  s_picker_layer = layer_create(GRect(inset, top + 20, w, 22));
+  s_up_layer = prv_label(root, GRect(inset, top, w, 24), "Timer (sec)",
+                         GTextAlignmentRight, FONT_KEY_GOTHIC_18);
+  s_picker_layer = layer_create(GRect(inset, top + 24, w, 22));
   layer_set_update_proc(s_picker_layer, prv_picker_update);
   layer_add_child(root, s_picker_layer);
   s_shutter_layer = layer_create(GRectZero);
