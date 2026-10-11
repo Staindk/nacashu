@@ -10,6 +10,10 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.TypefaceSpan
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -25,6 +29,7 @@ import io.rebble.pebblekit2.client.DefaultPebbleSender
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 /** Setup and test screen. Plain views, so there's no UI library to audit. */
 class MainActivity : Activity() {
@@ -46,22 +51,26 @@ class MainActivity : Activity() {
             setPadding(pad, pad, pad, pad)
         }
 
-        // Roboto Condensed, one of the Pebble watch's own system fonts, ships with Android.
-        val condensed = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+        // The header uses Silkscreen, the pixel font on the watchapp's spine (SIL Open Font License,
+        // see android/app/SILKSCREEN-OFL.txt), with "Pebble" in Roboto Condensed, one of the
+        // watch's own system fonts, which ships with Android.
         column.addView(TextView(this).apply {
             text = "Nacashu"
-            textSize = 28f
-            setTypeface(condensed, Typeface.BOLD)
+            typeface = resources.getFont(R.font.silkscreen_bold)
+            setPixelTextSize(28f)
         })
         column.addView(TextView(this).apply {
             text = "Native Camera Shutter"
-            textSize = 18f
-            setTypeface(condensed, Typeface.ITALIC)
+            typeface = resources.getFont(R.font.silkscreen)
+            setPixelTextSize(16f)
         })
         column.addView(TextView(this).apply {
-            text = "for Pebble"
-            textSize = 14f
-            typeface = condensed
+            text = SpannableString("for Pebble").apply {
+                val condensed = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
+                setSpan(TypefaceSpan(condensed), 4, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+            typeface = resources.getFont(R.font.silkscreen)
+            setPixelTextSize(14f)
             alpha = 0.6f
         })
         column.addView(
@@ -221,6 +230,12 @@ class MainActivity : Activity() {
         scope.launch {
             sender.sendDataToPebble(ShutterProtocol.WATCHAPP_UUID, ShutterProtocol.settingsMessage(this@MainActivity))
         }
+    }
+
+    /** Sets the size closest to [sp] that's a multiple of 8 px, so Silkscreen's pixels stay sharp. */
+    private fun TextView.setPixelTextSize(sp: Float) {
+        val px = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, sp, resources.displayMetrics)
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, ((px / 8).roundToInt().coerceAtLeast(1) * 8).toFloat())
     }
 
     private fun addButton(label: String, parent: LinearLayout = column, onClick: (View) -> Unit) {
