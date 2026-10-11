@@ -12,8 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Install Pebble SDK
+      - name: Install Pebble SDK and emulator libraries
         run: |
+          sudo apt-get install -y --no-install-recommends libsdl2-2.0-0 xvfb
           uv tool install pebble-tool
           pebble sdk install latest
       - name: Build watchapp
@@ -23,6 +24,28 @@ jobs:
         with:
           name: nacashu-watchapp
           path: watch/build/*.pbw
+      - name: Take emulator screenshots
+        env:
+          DISPLAY: ':99'
+        run: |
+          # The emulator opens an SDL window, so give it a virtual display.
+          Xvfb :99 &
+          mkdir shots
+          for platform in emery flint gabbro; do
+            start=$SECONDS
+            pebble install --emulator $platform watch/build/*.pbw
+            sleep 2
+            pebble screenshot --emulator $platform --no-open shots/$platform-1-ready.png
+            pebble emu-button --emulator $platform click select
+            sleep 1
+            pebble screenshot --emulator $platform --no-open shots/$platform-2-snap.png
+            pebble kill
+            echo "$platform: $((SECONDS - start))s"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots/*.png
 
   android:
     runs-on: ubuntu-latest
