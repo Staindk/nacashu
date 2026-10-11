@@ -27,8 +27,8 @@ import kotlinx.coroutines.launch
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
     private val scope = MainScope()
-    private val senderLazy = lazy { DefaultPebbleSender(applicationContext) }
-    private val sender by senderLazy
+    // Cheap to create: it only binds to the Pebble app when a message is sent.
+    private val sender by lazy { DefaultPebbleSender(applicationContext) }
     private lateinit var column: LinearLayout
     private lateinit var status: TextView
 
@@ -164,7 +164,7 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         scope.cancel()
-        if (senderLazy.isInitialized()) sender.close()
+        sender.close()
         super.onDestroy()
     }
 
