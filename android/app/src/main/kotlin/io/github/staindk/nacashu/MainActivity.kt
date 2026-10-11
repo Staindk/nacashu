@@ -48,8 +48,7 @@ class MainActivity : Activity() {
         })
 
         column.addView(CheckBox(this).apply {
-            text = "Lefty: button labels on the left of the watch screen " +
-                "(for the watch's Settings > Display > Orientation > Left-Handed)"
+            text = "Lefty: button labels on the left of the watch screen"
             isChecked = Settings.lefty(this@MainActivity)
             setOnCheckedChangeListener { _, checked ->
                 Settings.setLefty(this@MainActivity, checked)
