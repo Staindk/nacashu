@@ -179,15 +179,15 @@ static void prv_apply_lefty(void) {
 
   GBitmap *name = s_lefty ? s_name_up : s_name_down;
   const GSize size = gbitmap_get_bounds(name).size;
-  const int16_t name_x = s_lefty ? b.size.w - edge - size.w : edge;
+  // The name is a full-height white spine on the edge; on round screens the curve trims it.
   bitmap_layer_set_bitmap(s_name_layer, name);
   layer_set_frame(bitmap_layer_get_layer(s_name_layer),
-                  GRect(name_x, (b.size.h - size.h) / 2, size.w, size.h));
+                  GRect(s_lefty ? b.size.w - size.w : 0, (b.size.h - size.h) / 2, size.w, size.h));
 
   // Status goes in the gap between the name and the shutter.
   const int16_t gap = 4;
-  const int16_t box_w = b.size.w - 2 * edge - size.w - d - 2 * gap;
-  const int16_t box_x = s_lefty ? edge + d + gap : edge + size.w + gap;
+  const int16_t box_w = b.size.w - edge - size.w - d - 2 * gap;
+  const int16_t box_x = s_lefty ? edge + d + gap : size.w + gap;
   s_status_box = GRect(box_x, mid - 30, box_w, 60);
   prv_show_status_text();
 }

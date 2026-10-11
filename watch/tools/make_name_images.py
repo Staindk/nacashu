@@ -1,21 +1,40 @@
-# Usage: python3 make_name_images.py /path/to/Inter-Bold.otf
-# Draws the app name turned on its side for the edge of the watch screen. The Pebble SDK
-# can't draw rotated text, so the name ships as two small images. Needs Pillow.
-# Inter is under the SIL Open Font License: https://github.com/rsms/inter
+# Usage: python3 make_name_images.py /path/to/Silkscreen-Bold.ttf
+# Draws the app name as a white spine along the screen edge, one size per screen. The Pebble
+# SDK can't draw rotated text, so the name ships as small images. Needs Pillow.
+# Silkscreen is under the SIL Open Font License: https://fonts.google.com/specimen/Silkscreen
 import os, sys
 from PIL import Image, ImageDraw, ImageFont
 
-NAME, SIZE = "Nacashu", 24
-font = ImageFont.truetype(sys.argv[1], SIZE)
-left, top, right, bottom = font.getbbox(NAME)
-img = Image.new("L", (right - left + 2, bottom - top + 2), 0)
-ImageDraw.Draw(img).text((1 - left, 1 - top), NAME, font=font, fill=255)
-# Snap to Pebble's four greys: black, dark grey, light grey, white.
-img = img.point(lambda v: round(v / 85) * 85)
+NAME = "NACASHU"
+# Screen: (screen height, spine width, pixel scale, letter gap, text offset from the outer edge).
+# On the round screen the spine reaches past the curve, so the text sits further in.
+SCREENS = {
+    "large": (228, 26, 3, 2, None),
+    "small": (168, 20, 2, 3, None),
+    "round": (260, 34, 2, 1, 13),
+}
+
+font = ImageFont.truetype(sys.argv[1], 8)  # Silkscreen's native pixel size
+letters = []
+for ch in NAME:
+    img = Image.new("1", (16, 16), 0)
+    ImageDraw.Draw(img).text((2, 2), ch, font=font, fill=1)
+    letters.append(img.crop(img.getbbox()))
 
 out = os.path.join(os.path.dirname(__file__), "..", "resources", "images")
 os.makedirs(out, exist_ok=True)
-# Reads top to bottom on the left edge and bottom to top on the right, so it's upright when
-# you tilt the watch towards you: left wrist with lefty off, right wrist with lefty on.
-img.rotate(-90, expand=True).save(os.path.join(out, "name_down.png"), optimize=True)
-img.rotate(90, expand=True).save(os.path.join(out, "name_up.png"), optimize=True)
+for screen, (length, width, scale, gap, offset) in SCREENS.items():
+    h = max(l.height for l in letters)
+    text = Image.new("1", (sum(l.width for l in letters) + gap * (len(letters) - 1), h), 0)
+    x = 0
+    for l in letters:
+        text.paste(l, (x, h - l.height))
+        x += l.width + gap
+    text = text.resize((text.width * scale, text.height * scale), Image.NEAREST)
+    spine = Image.new("1", (length, width), 1)
+    y = (width - text.height) // 2 if offset is None else offset
+    spine.paste(0, ((length - text.width) // 2, y), text)
+    # Reads top to bottom on the left edge and bottom to top on the right, so it's upright when
+    # you tilt the watch towards you: left wrist with lefty off, right wrist with lefty on.
+    spine.rotate(-90, expand=True).save(os.path.join(out, f"name_down_{screen}.png"))
+    spine.rotate(90, expand=True).save(os.path.join(out, f"name_up_{screen}.png"))
