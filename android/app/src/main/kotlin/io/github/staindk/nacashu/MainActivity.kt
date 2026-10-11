@@ -53,7 +53,7 @@ class MainActivity : Activity() {
             if (service == null) {
                 toast("Do step 1 first")
             } else {
-                toast("Tap your camera's shutter button once")
+                toast("Pick your camera app if asked, then tap its shutter button once")
                 service.startLearning()
             }
         }
