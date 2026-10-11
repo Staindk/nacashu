@@ -18,7 +18,18 @@
       "watchface": false
     },
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "NAME_LEFT",
+          "file": "images/name_left.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "NAME_RIGHT",
+          "file": "images/name_right.png"
+        }
+      ]
     },
     "companionApp": {
       "android": {

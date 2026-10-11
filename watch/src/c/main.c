@@ -25,22 +25,44 @@ static const int TIMER_OPTIONS[] = {1, 3, 10, 30};
 // buttons round, but apps can't read it, so the labels move left to stay next to the buttons.
 #define PERSIST_KEY_LEFTY 2
 
+// Status messages are wiped after this long, so an old "Done" doesn't look like a new one.
+#define STATUS_CLEAR_MS 5000
+
 static Window *s_window;
 static TextLayer *s_up_layer;
 static TextLayer *s_up_hint_layer;
-static TextLayer *s_select_layer;
+static Layer *s_shutter_layer;
+static BitmapLayer *s_name_layer;
+static GBitmap *s_name_left;
+static GBitmap *s_name_right;
 static TextLayer *s_down_layer;
 static TextLayer *s_status_layer;
 static AppTimer *s_countdown_timer;
+static AppTimer *s_status_clear_timer;
 static int s_countdown;
 static int s_timer_index = TIMER_DEFAULT_INDEX;
 static bool s_lefty;
 static char s_status_buf[32];
 static char s_timer_label_buf[16];
 
+static void prv_cancel_status_clear(void) {
+  if (s_status_clear_timer) {
+    app_timer_cancel(s_status_clear_timer);
+    s_status_clear_timer = NULL;
+  }
+}
+
+static void prv_clear_status(void *context) {
+  s_status_clear_timer = NULL;
+  s_status_buf[0] = '\0';
+  text_layer_set_text(s_status_layer, s_status_buf);
+}
+
 static void prv_set_status(const char *text) {
   snprintf(s_status_buf, sizeof(s_status_buf), "%s", text);
   text_layer_set_text(s_status_layer, s_status_buf);
+  prv_cancel_status_clear();
+  s_status_clear_timer = app_timer_register(STATUS_CLEAR_MS, prv_clear_status, NULL);
 }
 
 static void prv_send_cmd(uint8_t cmd) {
@@ -67,6 +89,8 @@ static void prv_countdown_tick(void *context) {
     prv_send_cmd(CMD_SHUTTER);
     return;
   }
+  // The countdown stays up until it ends rather than being wiped.
+  prv_cancel_status_clear();
   snprintf(s_status_buf, sizeof(s_status_buf), "%d", s_countdown);
   text_layer_set_text(s_status_layer, s_status_buf);
   vibes_short_pulse();
@@ -114,12 +138,43 @@ static void prv_down_click(ClickRecognizerRef recognizer, void *context) {
   prv_send_cmd(CMD_OPEN_CAMERA);
 }
 
+// Pixel Camera style shutter: a white disc inside a white ring.
+static void prv_shutter_update(Layer *layer, GContext *ctx) {
+  const int16_t r = layer_get_bounds(layer).size.w / 2;
+  graphics_context_set_antialiased(ctx, true);
+  graphics_context_set_stroke_color(ctx, GColorWhite);
+  graphics_context_set_stroke_width(ctx, 3);
+  graphics_draw_circle(ctx, GPoint(r, r), r - 2);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_circle(ctx, GPoint(r, r), r - 6);
+}
+
+// Buttons and their labels on one side, the app name along the other edge.
 static void prv_apply_lefty(void) {
   const GTextAlignment align = s_lefty ? GTextAlignmentLeft : GTextAlignmentRight;
   text_layer_set_text_alignment(s_up_layer, align);
   text_layer_set_text_alignment(s_up_hint_layer, align);
-  text_layer_set_text_alignment(s_select_layer, align);
   text_layer_set_text_alignment(s_down_layer, align);
+
+  const GRect b = layer_get_bounds(window_get_root_layer(s_window));
+  const int16_t inset = PBL_IF_ROUND_ELSE(b.size.w / 6, 4);
+  const int16_t mid = b.size.h / 2;
+  const int16_t d = b.size.w > 144 ? 40 : 32;
+  const int16_t shutter_x = s_lefty ? inset : b.size.w - inset - d;
+  layer_set_frame(s_shutter_layer, GRect(shutter_x, mid - 10 - d / 2, d, d));
+
+  GBitmap *name = s_lefty ? s_name_right : s_name_left;
+  const GSize size = gbitmap_get_bounds(name).size;
+  const int16_t edge = PBL_IF_ROUND_ELSE(8, 3);
+  const int16_t name_x = s_lefty ? b.size.w - edge - size.w : edge;
+  bitmap_layer_set_bitmap(s_name_layer, name);
+  layer_set_frame(bitmap_layer_get_layer(s_name_layer),
+                  GRect(name_x, (b.size.h - size.h) / 2, size.w, size.h));
+
+  // Keep the status clear of the name. On round screens the name sits outside the inset already.
+  const int16_t name_side = PBL_IF_ROUND_ELSE(inset, edge + size.w);
+  layer_set_frame(text_layer_get_layer(s_status_layer),
+                  GRect(s_lefty ? inset : name_side, mid + 14, b.size.w - inset - name_side, 30));
 }
 
 static void prv_click_config(void *context) {
@@ -200,19 +255,29 @@ static void prv_window_load(Window *window) {
   s_up_hint_layer = prv_label(root, GRect(inset, PBL_IF_ROUND_ELSE(30, 8) + 22, w, 18),
                               "hold to change", GTextAlignmentRight, FONT_KEY_GOTHIC_14);
   prv_update_timer_label();
-  s_select_layer = prv_label(root, GRect(inset, mid - 22, w, 34), "SNAP",
-                             GTextAlignmentRight, FONT_KEY_GOTHIC_28_BOLD);
+  s_shutter_layer = layer_create(GRectZero);
+  layer_set_update_proc(s_shutter_layer, prv_shutter_update);
+  layer_add_child(root, s_shutter_layer);
+  s_name_left = gbitmap_create_with_resource(RESOURCE_ID_NAME_LEFT);
+  s_name_right = gbitmap_create_with_resource(RESOURCE_ID_NAME_RIGHT);
+  s_name_layer = bitmap_layer_create(GRectZero);
+  layer_add_child(root, bitmap_layer_get_layer(s_name_layer));
   s_down_layer = prv_label(root, GRect(inset, b.size.h - PBL_IF_ROUND_ELSE(54, 32), w, 24),
                            "Open camera", GTextAlignmentRight, FONT_KEY_GOTHIC_18);
-  s_status_layer = prv_label(root, GRect(inset, mid + 14, w, 30), "Ready",
-                             GTextAlignmentCenter, FONT_KEY_GOTHIC_24_BOLD);
+  // The smallest screen needs a smaller font to fit "Camera closed" beside the name.
+  s_status_layer = prv_label(root, GRect(inset, mid + 14, w, 30), "", GTextAlignmentCenter,
+                             b.size.w > 144 ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD);
+  prv_set_status("Ready");
   prv_apply_lefty();
 }
 
 static void prv_window_unload(Window *window) {
   text_layer_destroy(s_up_layer);
   text_layer_destroy(s_up_hint_layer);
-  text_layer_destroy(s_select_layer);
+  layer_destroy(s_shutter_layer);
+  bitmap_layer_destroy(s_name_layer);
+  gbitmap_destroy(s_name_left);
+  gbitmap_destroy(s_name_right);
   text_layer_destroy(s_down_layer);
   text_layer_destroy(s_status_layer);
 }
@@ -240,6 +305,7 @@ static void prv_init(void) {
 
 static void prv_deinit(void) {
   prv_cancel_countdown();
+  prv_cancel_status_clear();
   window_destroy(s_window);
 }
 
