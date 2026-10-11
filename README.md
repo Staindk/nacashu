@@ -46,7 +46,8 @@ The companion app asks for accessibility access, so it's kept small enough to re
 watch/            Watchapp (Pebble SDK 3). Targets emery (Time 2), flint (Core 2 Duo), gabbro (Round 2).
 watch/tools/      fake_phone.py: plays the phone side against the emulator.
 android/          Companion app (Kotlin, minSdk 29).
-docs/             Emulator screenshots, copied in by hand from the CI `screenshots` artifact.
+docs/             Emulator screenshots, copied in by hand from the CI `screenshots` artifact, and icon.png,
+                  the 32x32 app icon the Android launcher icon is drawn from.
 .github/          CI: builds the .pbw and .apk and takes emulator screenshots, for pull requests and main.
 ```
 
