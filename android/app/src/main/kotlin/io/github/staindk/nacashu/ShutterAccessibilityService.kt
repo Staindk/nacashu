@@ -172,7 +172,7 @@ class ShutterAccessibilityService : AccessibilityService() {
         val shutter = findShutter(root)
         if (shutter != null) {
             // A learned button is exactly what the user tapped; don't widen it to a parent.
-            val target = if (Settings.learnedShutter(this) != null) shutter else clickableAncestor(shutter)
+            val target = clickTarget(shutter, widen = Settings.learnedShutter(this) == null)
             val bounds = Rect().also { target.getBoundsInScreen(it) }
             if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                 Settings.saveTapPoint(this, bounds.exactCenterX(), bounds.exactCenterY())
@@ -240,6 +240,24 @@ class ShutterAccessibilityService : AccessibilityService() {
         for (i in 0 until node.childCount) {
             val found = node.getChild(i)?.let { findNode(it, matches) }
             if (found != null) return found
+        }
+        return null
+    }
+
+    /**
+     * The node to click for [node]: itself if clickable, else a clickable node inside it (Pixel
+     * Camera's shutter_button wraps a clickable Compose button), else, when [widen], a clickable
+     * parent.
+     */
+    private fun clickTarget(node: AccessibilityNodeInfo, widen: Boolean): AccessibilityNodeInfo =
+        if (node.isClickable) node
+        else clickableDescendant(node) ?: if (widen) clickableAncestor(node) else node
+
+    private fun clickableDescendant(node: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i) ?: continue
+            if (child.isClickable && child.isVisibleToUser) return child
+            clickableDescendant(child)?.let { return it }
         }
         return null
     }
