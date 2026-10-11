@@ -6,12 +6,13 @@ import os, sys
 from PIL import Image, ImageDraw, ImageFont
 
 NAME = "NACASHU"
-# Screen: (screen height, spine width, pixel scale, letter gap, text offset from the outer edge).
-# On the round screen the spine reaches past the curve, so the text sits further in.
+# Screen: (screen height, spine width, pixel scale, letter gap, text offset from the inner edge).
+# A scale of (2, 3) makes each font pixel 2 wide along the spine and 3 tall across it.
+# On the round screen the spine runs past the curve, so the offset sets how far out the text sits.
 SCREENS = {
-    "large": (228, 26, 3, 2, None),
-    "small": (168, 20, 2, 3, None),
-    "round": (260, 34, 2, 1, 13),
+    "large": (228, 28, (3, 4), 4, None),
+    "small": (168, 22, (2, 3), 4, None),
+    "round": (260, 42, (2, 3), 1, 17),
 }
 
 font = ImageFont.truetype(sys.argv[1], 8)  # Silkscreen's native pixel size
@@ -30,7 +31,8 @@ for screen, (length, width, scale, gap, offset) in SCREENS.items():
     for l in letters:
         text.paste(l, (x, h - l.height))
         x += l.width + gap
-    text = text.resize((text.width * scale, text.height * scale), Image.NEAREST)
+    sx, sy = scale
+    text = text.resize((text.width * sx, text.height * sy), Image.NEAREST)
     spine = Image.new("1", (length, width), 1)
     y = (width - text.height) // 2 if offset is None else offset
     spine.paste(0, ((length - text.width) // 2, y), text)
