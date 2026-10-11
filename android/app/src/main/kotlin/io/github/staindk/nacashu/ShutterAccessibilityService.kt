@@ -171,7 +171,8 @@ class ShutterAccessibilityService : AccessibilityService() {
 
         val shutter = findShutter(root)
         if (shutter != null) {
-            val target = clickableAncestor(shutter)
+            // A learned button is exactly what the user tapped; don't widen it to a parent.
+            val target = if (Settings.learnedShutter(this) != null) shutter else clickableAncestor(shutter)
             val bounds = Rect().also { target.getBoundsInScreen(it) }
             if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                 Settings.saveTapPoint(this, bounds.exactCenterX(), bounds.exactCenterY())
@@ -214,20 +215,20 @@ class ShutterAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Looks for the shutter in this order: the button learned with "Learn my shutter", the
-     * built-in view IDs for known camera apps, then any button labelled like a shutter. Returns
-     * null when nothing matches, and the caller taps the saved position instead.
+     * Once a shutter has been learned, only that is used: its view ID, then its label. When
+     * neither is found this returns null and the caller taps the learned position. Built-in IDs
+     * and shutter-like labels are only for cameras that haven't been learned.
      */
     private fun findShutter(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
         val learned = Settings.learnedShutter(this)
-        val ids = listOfNotNull(learned?.viewId) + KNOWN_SHUTTER_IDS[root.packageName?.toString()].orEmpty()
-        for (id in ids) {
-            root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }
-                ?.let { return it }
-        }
         if (learned != null) {
-            // Trust what the user taught us: its label, else the tapped position (see pressShutter).
+            learned.viewId?.let { id ->
+                root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }?.let { return it }
+            }
             return learned.label?.let { label -> findNode(root) { it.equals(label, ignoreCase = true) } }
+        }
+        for (id in KNOWN_SHUTTER_IDS[root.packageName?.toString()].orEmpty()) {
+            root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }?.let { return it }
         }
         return findNode(root) { text -> SHUTTER_LABELS.any { it in text.lowercase() } }
     }
