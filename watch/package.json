@@ -18,7 +18,56 @@
       "watchface": false
     },
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "NAME_DOWN",
+          "file": "images/name_down_large.png",
+          "targetPlatforms": [
+            "emery"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "NAME_DOWN",
+          "file": "images/name_down_small.png",
+          "targetPlatforms": [
+            "flint"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "NAME_DOWN",
+          "file": "images/name_down_round.png",
+          "targetPlatforms": [
+            "gabbro"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "NAME_UP",
+          "file": "images/name_up_large.png",
+          "targetPlatforms": [
+            "emery"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "NAME_UP",
+          "file": "images/name_up_small.png",
+          "targetPlatforms": [
+            "flint"
+          ]
+        },
+        {
+          "type": "bitmap",
+          "name": "NAME_UP",
+          "file": "images/name_up_round.png",
+          "targetPlatforms": [
+            "gabbro"
+          ]
+        }
+      ]
     },
     "companionApp": {
       "android": {
