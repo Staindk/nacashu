@@ -21,13 +21,13 @@
       "media": [
         {
           "type": "bitmap",
-          "name": "NAME_LEFT",
-          "file": "images/name_left.png"
+          "name": "NAME_DOWN",
+          "file": "images/name_down.png"
         },
         {
           "type": "bitmap",
-          "name": "NAME_RIGHT",
-          "file": "images/name_right.png"
+          "name": "NAME_UP",
+          "file": "images/name_up.png"
         }
       ]
     },

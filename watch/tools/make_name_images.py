@@ -5,7 +5,7 @@
 import os, sys
 from PIL import Image, ImageDraw, ImageFont
 
-NAME, SIZE = "Nacashu", 18
+NAME, SIZE = "Nacashu", 24
 font = ImageFont.truetype(sys.argv[1], SIZE)
 left, top, right, bottom = font.getbbox(NAME)
 img = Image.new("L", (right - left + 2, bottom - top + 2), 0)
@@ -14,6 +14,8 @@ ImageDraw.Draw(img).text((1 - left, 1 - top), NAME, font=font, fill=255)
 img = img.point(lambda v: round(v / 85) * 85)
 
 out = os.path.join(os.path.dirname(__file__), "..", "resources", "images")
-# Left edge reads bottom to top, right edge top to bottom, so the letters face the middle.
-img.rotate(90, expand=True).save(os.path.join(out, "name_left.png"), optimize=True)
-img.rotate(-90, expand=True).save(os.path.join(out, "name_right.png"), optimize=True)
+os.makedirs(out, exist_ok=True)
+# Reads top to bottom on the left edge and bottom to top on the right, so it's upright when
+# you tilt the watch towards you: left wrist with lefty off, right wrist with lefty on.
+img.rotate(-90, expand=True).save(os.path.join(out, "name_down.png"), optimize=True)
+img.rotate(90, expand=True).save(os.path.join(out, "name_up.png"), optimize=True)

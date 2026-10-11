@@ -33,10 +33,11 @@ static TextLayer *s_up_layer;
 static TextLayer *s_up_hint_layer;
 static Layer *s_shutter_layer;
 static BitmapLayer *s_name_layer;
-static GBitmap *s_name_left;
-static GBitmap *s_name_right;
+static GBitmap *s_name_down;
+static GBitmap *s_name_up;
 static TextLayer *s_down_layer;
 static TextLayer *s_status_layer;
+static GRect s_status_box;
 static AppTimer *s_countdown_timer;
 static AppTimer *s_status_clear_timer;
 static int s_countdown;
@@ -44,6 +45,18 @@ static int s_timer_index = TIMER_DEFAULT_INDEX;
 static bool s_lefty;
 static char s_status_buf[32];
 static char s_timer_label_buf[16];
+
+// The status sits beside the shutter, centred on it, and wraps to two lines when it's long.
+static void prv_show_status_text(void) {
+  Layer *layer = text_layer_get_layer(s_status_layer);
+  layer_set_frame(layer, s_status_box);
+  text_layer_set_text(s_status_layer, s_status_buf);
+  const int16_t h = text_layer_get_content_size(s_status_layer).h;
+  GRect frame = s_status_box;
+  frame.origin.y += (frame.size.h - h) / 2 - 3;  // Gothic has extra space above the letters.
+  frame.size.h = h + 6;
+  layer_set_frame(layer, frame);
+}
 
 static void prv_cancel_status_clear(void) {
   if (s_status_clear_timer) {
@@ -55,12 +68,12 @@ static void prv_cancel_status_clear(void) {
 static void prv_clear_status(void *context) {
   s_status_clear_timer = NULL;
   s_status_buf[0] = '\0';
-  text_layer_set_text(s_status_layer, s_status_buf);
+  prv_show_status_text();
 }
 
 static void prv_set_status(const char *text) {
   snprintf(s_status_buf, sizeof(s_status_buf), "%s", text);
-  text_layer_set_text(s_status_layer, s_status_buf);
+  prv_show_status_text();
   prv_cancel_status_clear();
   s_status_clear_timer = app_timer_register(STATUS_CLEAR_MS, prv_clear_status, NULL);
 }
@@ -92,7 +105,7 @@ static void prv_countdown_tick(void *context) {
   // The countdown stays up until it ends rather than being wiped.
   prv_cancel_status_clear();
   snprintf(s_status_buf, sizeof(s_status_buf), "%d", s_countdown);
-  text_layer_set_text(s_status_layer, s_status_buf);
+  prv_show_status_text();
   vibes_short_pulse();
   s_countdown_timer = app_timer_register(1000, prv_countdown_tick, NULL);
 }
@@ -157,24 +170,26 @@ static void prv_apply_lefty(void) {
   text_layer_set_text_alignment(s_down_layer, align);
 
   const GRect b = layer_get_bounds(window_get_root_layer(s_window));
-  const int16_t inset = PBL_IF_ROUND_ELSE(b.size.w / 6, 4);
   const int16_t mid = b.size.h / 2;
+  // The middle row is the widest part of a round screen, so the shutter can hug the edge there.
+  const int16_t edge = PBL_IF_ROUND_ELSE(10, 4);
   const int16_t d = b.size.w > 144 ? 40 : 32;
-  const int16_t shutter_x = s_lefty ? inset : b.size.w - inset - d;
-  layer_set_frame(s_shutter_layer, GRect(shutter_x, mid - 10 - d / 2, d, d));
+  const int16_t shutter_x = s_lefty ? edge : b.size.w - edge - d;
+  layer_set_frame(s_shutter_layer, GRect(shutter_x, mid - d / 2, d, d));
 
-  GBitmap *name = s_lefty ? s_name_right : s_name_left;
+  GBitmap *name = s_lefty ? s_name_up : s_name_down;
   const GSize size = gbitmap_get_bounds(name).size;
-  const int16_t edge = PBL_IF_ROUND_ELSE(8, 3);
   const int16_t name_x = s_lefty ? b.size.w - edge - size.w : edge;
   bitmap_layer_set_bitmap(s_name_layer, name);
   layer_set_frame(bitmap_layer_get_layer(s_name_layer),
                   GRect(name_x, (b.size.h - size.h) / 2, size.w, size.h));
 
-  // Keep the status clear of the name. On round screens the name sits outside the inset already.
-  const int16_t name_side = PBL_IF_ROUND_ELSE(inset, edge + size.w);
-  layer_set_frame(text_layer_get_layer(s_status_layer),
-                  GRect(s_lefty ? inset : name_side, mid + 14, b.size.w - inset - name_side, 30));
+  // Status goes in the gap between the name and the shutter.
+  const int16_t gap = 4;
+  const int16_t box_w = b.size.w - 2 * edge - size.w - d - 2 * gap;
+  const int16_t box_x = s_lefty ? edge + d + gap : edge + size.w + gap;
+  s_status_box = GRect(box_x, mid - 30, box_w, 60);
+  prv_show_status_text();
 }
 
 static void prv_click_config(void *context) {
@@ -247,7 +262,6 @@ static void prv_window_load(Window *window) {
   GRect b = layer_get_bounds(root);
   const int16_t inset = PBL_IF_ROUND_ELSE(b.size.w / 6, 4);
   const int16_t w = b.size.w - 2 * inset;
-  const int16_t mid = b.size.h / 2;
 
   window_set_background_color(window, GColorBlack);
   s_up_layer = prv_label(root, GRect(inset, PBL_IF_ROUND_ELSE(30, 8), w, 24), "",
@@ -258,17 +272,18 @@ static void prv_window_load(Window *window) {
   s_shutter_layer = layer_create(GRectZero);
   layer_set_update_proc(s_shutter_layer, prv_shutter_update);
   layer_add_child(root, s_shutter_layer);
-  s_name_left = gbitmap_create_with_resource(RESOURCE_ID_NAME_LEFT);
-  s_name_right = gbitmap_create_with_resource(RESOURCE_ID_NAME_RIGHT);
+  s_name_down = gbitmap_create_with_resource(RESOURCE_ID_NAME_DOWN);
+  s_name_up = gbitmap_create_with_resource(RESOURCE_ID_NAME_UP);
   s_name_layer = bitmap_layer_create(GRectZero);
   layer_add_child(root, bitmap_layer_get_layer(s_name_layer));
   s_down_layer = prv_label(root, GRect(inset, b.size.h - PBL_IF_ROUND_ELSE(54, 32), w, 24),
                            "Open camera", GTextAlignmentRight, FONT_KEY_GOTHIC_18);
-  // The smallest screen needs a smaller font to fit "Camera closed" beside the name.
-  s_status_layer = prv_label(root, GRect(inset, mid + 14, w, 30), "", GTextAlignmentCenter,
+  // The smallest screen needs a smaller font to fit between the name and the shutter.
+  s_status_layer = prv_label(root, GRectZero, "", GTextAlignmentCenter,
                              b.size.w > 144 ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD);
-  prv_set_status("Ready");
+  text_layer_set_overflow_mode(s_status_layer, GTextOverflowModeWordWrap);
   prv_apply_lefty();
+  prv_set_status("Ready");
 }
 
 static void prv_window_unload(Window *window) {
@@ -276,8 +291,8 @@ static void prv_window_unload(Window *window) {
   text_layer_destroy(s_up_hint_layer);
   layer_destroy(s_shutter_layer);
   bitmap_layer_destroy(s_name_layer);
-  gbitmap_destroy(s_name_left);
-  gbitmap_destroy(s_name_right);
+  gbitmap_destroy(s_name_down);
+  gbitmap_destroy(s_name_up);
   text_layer_destroy(s_down_layer);
   text_layer_destroy(s_status_layer);
 }
