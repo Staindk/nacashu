@@ -24,7 +24,10 @@ import java.io.IOException
 class ShutterAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var learning = false
-    private val stopLearning = Runnable { setLearning(false) }
+    private val learningTimedOut = Runnable {
+        setLearning(false)
+        toast("No tap detected in a camera app, so nothing was learned. Please try again.")
+    }
 
     override fun onServiceConnected() {
         instance = this
@@ -38,6 +41,7 @@ class ShutterAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (!learning || event?.eventType != AccessibilityEvent.TYPE_VIEW_CLICKED) return
         val pkg = event.packageName?.toString() ?: return
+        Log.d(TAG, "Learning: click in $pkg on ${event.source?.viewIdResourceName}")
         // Ignore taps outside camera apps, such as a permission dialog the camera shows first.
         if (!isCameraApp(pkg)) return
         val node = event.source
@@ -57,12 +61,12 @@ class ShutterAccessibilityService : AccessibilityService() {
     fun startLearning() {
         setLearning(true)
         openCamera(learning = true)
-        handler.postDelayed(stopLearning, LEARN_TIMEOUT_MS)
+        handler.postDelayed(learningTimedOut, LEARN_TIMEOUT_MS)
     }
 
     private fun setLearning(on: Boolean) {
         learning = on
-        handler.removeCallbacks(stopLearning)
+        handler.removeCallbacks(learningTimedOut)
         serviceInfo = serviceInfo.apply {
             eventTypes = if (on) {
                 eventTypes or AccessibilityEvent.TYPE_VIEW_CLICKED

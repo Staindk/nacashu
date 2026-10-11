@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
 import android.view.ViewGroup
+import android.view.Window
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.LinearLayout
@@ -23,11 +24,20 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Newer Android draws apps edge to edge, under the title bar. Drop the title bar and keep
+        // the content clear of the status and navigation bars instead.
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
         val pad = (16 * resources.displayMetrics.density).toInt()
         column = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(pad, pad * 3, pad, pad)
+            setPadding(pad, pad, pad, pad)
         }
+
+        column.addView(TextView(this).apply {
+            text = "Nacashu"
+            textSize = 28f
+            setPadding(0, 0, 0, pad)
+        })
 
         status = TextView(this).apply {
             textSize = 16f
@@ -77,7 +87,19 @@ class MainActivity : Activity() {
         }
         addButton("Debug: share last dump") { shareDump() }
 
-        setContentView(ScrollView(this).apply { addView(column) })
+        setContentView(ScrollView(this).apply {
+            addView(column)
+            setOnApplyWindowInsetsListener { view, insets ->
+                @Suppress("DEPRECATION") // The replacement needs API 30; this app supports 29.
+                view.setPadding(
+                    insets.systemWindowInsetLeft,
+                    insets.systemWindowInsetTop,
+                    insets.systemWindowInsetRight,
+                    insets.systemWindowInsetBottom,
+                )
+                insets
+            }
+        })
     }
 
     override fun onResume() {
@@ -86,7 +108,7 @@ class MainActivity : Activity() {
         val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
         val learned = Settings.learnedShutter(this)
         val shutter = when {
-            learned != null -> "learned (${learned.label ?: learned.viewId})"
+            learned != null -> "learned \"${learned.label ?: "no label"}\" (ID: ${learned.viewId ?: "none"})"
             Settings.cameraPackage(this) == Settings.PIXEL_CAMERA &&
                 packageManager.getLaunchIntentForPackage(Settings.PIXEL_CAMERA) != null -> "built in for Pixel Camera"
             else -> "not set up (step 2)"
