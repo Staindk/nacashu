@@ -40,6 +40,8 @@ class ShutterListenerService : BasePebbleListenerService() {
 
     override fun onAppOpened(watchappUUID: UUID, watch: WatchIdentifier) {
         if (watchappUUID != ShutterProtocol.WATCHAPP_UUID) return
+        // Settings go when the watchapp opens; it can't receive messages while it's closed.
+        send(ShutterProtocol.settingsMessage(this), watch)
         val service = ShutterAccessibilityService.instance
         if (service != null && Settings.autoOpenCamera(this)) {
             service.openCamera()
@@ -51,13 +53,12 @@ class ShutterListenerService : BasePebbleListenerService() {
         super.onDestroy()
     }
 
-    private fun sendStatus(status: Int, watch: WatchIdentifier) {
+    private fun sendStatus(status: Int, watch: WatchIdentifier) =
+        send(mapOf(ShutterProtocol.KEY_STATUS to PebbleDictionaryItem.UInt8(status.toUByte())), watch)
+
+    private fun send(data: PebbleDictionary, watch: WatchIdentifier) {
         coroutineScope.launch {
-            sender.sendDataToPebble(
-                ShutterProtocol.WATCHAPP_UUID,
-                mapOf(ShutterProtocol.KEY_STATUS to PebbleDictionaryItem.UInt8(status.toUByte())),
-                listOf(watch),
-            )
+            sender.sendDataToPebble(ShutterProtocol.WATCHAPP_UUID, data, listOf(watch))
         }
     }
 

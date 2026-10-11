@@ -5,9 +5,13 @@ Nacashu turns a Pebble watch into a remote shutter for your phone's **own** came
 ```
 Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu (Android)
   SELECT = snap                                      │ accessibility service
-  UP     = open camera                               ▼
-  DOWN   = 3 s timer   ◀── status (vibrate) ──  clicks the camera's shutter button
+  UP     = timer                                     ▼
+  DOWN   = open camera ◀── status (vibrate) ──  clicks the camera's shutter button
 ```
+
+Hold **UP** to cycle the timer through 1, 3, 10 and 30 seconds.
+
+For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then tick **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring in https://github.com/Staindk/nacashu/issues/6).
 
 Status: early proof of concept. It works on a Pixel with a Pebble Time 2, including from the lock screen.
 
