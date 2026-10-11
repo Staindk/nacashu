@@ -29,7 +29,7 @@ import java.io.IOException
 class ShutterAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var overlay: TextView? = null
-    private val learningTimedOut = Runnable { finishLearning("No tap seen, so nothing was learned. Please try again.") }
+    private val learningTimedOut = Runnable { finishLearning("No tap seen, so the shutter wasn't set. Please try again.") }
 
     override fun onServiceConnected() {
         instance = this
@@ -44,7 +44,7 @@ class ShutterAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
 
     /**
-     * "Learn my shutter": covers the screen with a see-through layer that catches one tap, then
+     * "Set shutter button": covers the screen with a see-through layer that catches one tap, then
      * opens the chosen camera under it. The layer comes first so a quick tap can't reach the
      * camera. Nacashu saves where the tap landed and which camera button is under it, then goes
      * back to Nacashu. The layer goes away after that one tap, or after a minute.
@@ -95,7 +95,7 @@ class ShutterAccessibilityService : AccessibilityService() {
         val shutter = Settings.LearnedShutter(node?.viewIdResourceName, label)
         Settings.saveLearnedShutter(this, shutter, x to y)
         Log.i(TAG, "Learned shutter at ($x, $y): $shutter")
-        finishLearning("Learned: ${label ?: shutter.viewId ?: "that spot on the screen"}")
+        finishLearning("Shutter set: ${label ?: shutter.viewId ?: "that spot on the screen"}")
     }
 
     /** Shows [message] on the layer for a few seconds, then removes it and goes back to Nacashu. */
@@ -325,7 +325,7 @@ class ShutterAccessibilityService : AccessibilityService() {
 
         private const val LEARN_TIMEOUT_MS = 60_000L
 
-        // Built-in shutter view IDs per camera app, so these work without "Learn my shutter".
+        // Built-in shutter view IDs per camera app, so these work without "Set shutter button".
         // Add more as people report them (the "Dump camera screen" button shows the IDs).
         private val KNOWN_SHUTTER_IDS = mapOf(
             Settings.PIXEL_CAMERA to listOf(
