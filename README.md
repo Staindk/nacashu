@@ -37,7 +37,7 @@ Status: early proof of concept. It works on a Pixel with a Pebble Time 2, includ
 The companion app asks for accessibility access, so it's kept small enough to read in one sitting:
 
 - Its only dependency is the official [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2) library, and it has no internet permission.
-- It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Learn my shutter** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot. The layer disappears after that one tap, or after a minute.
+- It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Learn my shutter** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot. The layer disappears a few seconds after that one tap, or after a minute.
 - The setup screen uses plain Android views, so there's no UI library to read through.
 
 ## Layout

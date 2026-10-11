@@ -44,26 +44,29 @@ class ShutterAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
 
     /**
-     * "Learn my shutter": opens the chosen camera, then covers it with a see-through layer that
-     * catches one tap. The tap doesn't reach the camera. Nacashu saves where it landed and which
-     * camera button is under it. The layer goes away after that one tap, or after a minute.
+     * "Learn my shutter": covers the screen with a see-through layer that catches one tap, then
+     * opens the chosen camera under it. The layer comes first so a quick tap can't reach the
+     * camera. Nacashu saves where the tap landed and which camera button is under it, then goes
+     * back to Nacashu. The layer goes away after that one tap, or after a minute.
      */
     fun startLearning() {
+        // Drop anything left from an earlier round, such as its pending trip back to Nacashu.
+        handler.removeCallbacksAndMessages(null)
         removeOverlay()
+        showLearnOverlay()
         openCamera()
-        // Give the camera a moment to come up before covering it.
-        handler.postDelayed({ showLearnOverlay() }, 1500)
         handler.postDelayed(learningTimedOut, LEARN_TIMEOUT_MS)
     }
 
     private fun showLearnOverlay() {
+        val dp = resources.displayMetrics.density
         val view = TextView(this).apply {
             text = "Nacashu: tap your camera's shutter button once"
-            textSize = 20f
+            textSize = 24f
             setTextColor(Color.WHITE)
-            setBackgroundColor(0x66000000)
+            setBackgroundColor(0x99000000.toInt())
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(48, 240, 48, 0)
+            setPadding((24 * dp).toInt(), (120 * dp).toInt(), (24 * dp).toInt(), 0)
             setOnTouchListener { _, event ->
                 if (event.action == MotionEvent.ACTION_UP) learnAt(event.rawX, event.rawY)
                 true
@@ -81,7 +84,13 @@ class ShutterAccessibilityService : AccessibilityService() {
     }
 
     private fun learnAt(x: Float, y: Float) {
-        val node = cameraRoot()?.let { nodeAt(it, x.toInt(), y.toInt()) }
+        val root = cameraRoot()
+        if (root == null) {
+            // Tapped before the camera came up, so there's nothing under the tap to learn yet.
+            overlay?.text = "Wait for the camera to open, then tap its shutter button"
+            return
+        }
+        val node = nodeAt(root, x.toInt(), y.toInt())
         val label = (node?.contentDescription ?: node?.text)?.toString()?.takeIf { it.isNotBlank() }
         val shutter = Settings.LearnedShutter(node?.viewIdResourceName, label)
         Settings.saveLearnedShutter(this, shutter, x to y)
@@ -89,13 +98,21 @@ class ShutterAccessibilityService : AccessibilityService() {
         finishLearning("Learned: ${label ?: shutter.viewId ?: "that spot on the screen"}")
     }
 
-    /** Shows [message] on the layer for a moment, then removes it. */
+    /** Shows [message] on the layer for a few seconds, then removes it and goes back to Nacashu. */
     private fun finishLearning(message: String) {
         handler.removeCallbacks(learningTimedOut)
         val view = overlay ?: return
-        view.text = message
+        view.text = "$message\n\nGoing back to Nacashu…"
         view.setOnTouchListener(null)
-        handler.postDelayed({ removeOverlay() }, 1500)
+        handler.postDelayed({
+            removeOverlay()
+            // Allowed from the background for the same reason as openCamera().
+            startActivity(
+                Intent(this, MainActivity::class.java).addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP,
+                ),
+            )
+        }, 3000)
     }
 
     private fun removeOverlay() {
