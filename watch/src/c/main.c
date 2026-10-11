@@ -27,6 +27,7 @@ static const int TIMER_OPTIONS[] = {1, 3, 10, 30};
 
 static Window *s_window;
 static TextLayer *s_up_layer;
+static TextLayer *s_up_hint_layer;
 static TextLayer *s_select_layer;
 static TextLayer *s_down_layer;
 static TextLayer *s_status_layer;
@@ -116,6 +117,7 @@ static void prv_down_click(ClickRecognizerRef recognizer, void *context) {
 static void prv_apply_lefty(void) {
   const GTextAlignment align = s_lefty ? GTextAlignmentLeft : GTextAlignmentRight;
   text_layer_set_text_alignment(s_up_layer, align);
+  text_layer_set_text_alignment(s_up_hint_layer, align);
   text_layer_set_text_alignment(s_select_layer, align);
   text_layer_set_text_alignment(s_down_layer, align);
 }
@@ -195,6 +197,8 @@ static void prv_window_load(Window *window) {
   window_set_background_color(window, GColorBlack);
   s_up_layer = prv_label(root, GRect(inset, PBL_IF_ROUND_ELSE(30, 8), w, 24), "",
                          GTextAlignmentRight, FONT_KEY_GOTHIC_18);
+  s_up_hint_layer = prv_label(root, GRect(inset, PBL_IF_ROUND_ELSE(30, 8) + 22, w, 18),
+                              "hold to change", GTextAlignmentRight, FONT_KEY_GOTHIC_14);
   prv_update_timer_label();
   s_select_layer = prv_label(root, GRect(inset, mid - 22, w, 34), "SNAP",
                              GTextAlignmentRight, FONT_KEY_GOTHIC_28_BOLD);
@@ -207,6 +211,7 @@ static void prv_window_load(Window *window) {
 
 static void prv_window_unload(Window *window) {
   text_layer_destroy(s_up_layer);
+  text_layer_destroy(s_up_hint_layer);
   text_layer_destroy(s_select_layer);
   text_layer_destroy(s_down_layer);
   text_layer_destroy(s_status_layer);
