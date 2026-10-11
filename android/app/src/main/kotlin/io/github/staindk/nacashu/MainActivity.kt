@@ -46,18 +46,22 @@ class MainActivity : Activity() {
             setPadding(pad, pad, pad, pad)
         }
 
+        // Roboto Condensed, one of the Pebble watch's own system fonts, ships with Android.
+        val condensed = Typeface.create("sans-serif-condensed", Typeface.NORMAL)
         column.addView(TextView(this).apply {
             text = "Nacashu"
             textSize = 28f
+            setTypeface(condensed, Typeface.BOLD)
         })
         column.addView(TextView(this).apply {
             text = "Native Camera Shutter"
             textSize = 18f
-            setTypeface(typeface, Typeface.ITALIC)
+            setTypeface(condensed, Typeface.ITALIC)
         })
         column.addView(TextView(this).apply {
             text = "for Pebble"
             textSize = 14f
+            typeface = condensed
             alpha = 0.6f
         })
         column.addView(
