@@ -20,9 +20,9 @@ static const int TIMER_OPTIONS[] = {1, 3, 10, 30};
 #define TIMER_OPTION_COUNT ((int)ARRAY_LENGTH(TIMER_OPTIONS))
 #define TIMER_DEFAULT_INDEX 1
 
-// Lefty layout, set in the phone app and sent with every phone message. PebbleOS has its own
-// Left-Handed setting (Settings > Display) that turns the screen and buttons round, but apps
-// can't read it, so the button labels are moved to the left here to stay next to the buttons.
+// Lefty layout, set in the phone app and sent when the watchapp opens or the setting changes.
+// PebbleOS has its own Left-Handed setting (Settings > Display) that turns the screen and
+// buttons round, but apps can't read it, so the labels move left to stay next to the buttons.
 #define PERSIST_KEY_LEFTY 2
 
 static Window *s_window;

@@ -1,5 +1,8 @@
 package io.github.staindk.nacashu
 
+import android.content.Context
+import io.rebble.pebblekit2.common.model.PebbleDictionary
+import io.rebble.pebblekit2.common.model.PebbleDictionaryItem
 import java.util.UUID
 
 /** AppMessage keys and values. Must match watch/src/c/main.c. */
@@ -28,6 +31,10 @@ object ShutterProtocol {
         STATUS_GESTURE_FALLBACK -> "OK (tapped by position)"
         else -> "Unknown ($status)"
     }
+
+    /** The settings the phone sends to the watch. */
+    fun settingsMessage(context: Context): PebbleDictionary =
+        mapOf(KEY_LEFTY to PebbleDictionaryItem.UInt8(if (Settings.lefty(context)) 1u else 0u))
 
     /** Runs a watch command and reports its status. Must be called on the main thread. */
     fun run(cmd: Int, onStatus: (Int) -> Unit) {

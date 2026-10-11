@@ -18,10 +18,17 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import io.rebble.pebblekit2.client.DefaultPebbleAndroidAppPicker
+import io.rebble.pebblekit2.client.DefaultPebbleSender
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 /** Setup and test screen. Plain views, so there's no UI library to audit. */
 class MainActivity : Activity() {
     private val handler = Handler(Looper.getMainLooper())
+    private val scope = MainScope()
+    private val senderLazy = lazy { DefaultPebbleSender(applicationContext) }
+    private val sender by senderLazy
     private lateinit var column: LinearLayout
     private lateinit var status: TextView
 
@@ -74,6 +81,7 @@ class MainActivity : Activity() {
             isChecked = Settings.lefty(this@MainActivity)
             setOnCheckedChangeListener { _, checked ->
                 Settings.setLefty(this@MainActivity, checked)
+                sendSettingsToWatch()
             }
         })
 
@@ -152,6 +160,19 @@ class MainActivity : Activity() {
         packageManager.getApplicationInfo(pkg, 0).loadLabel(packageManager).toString()
     } catch (e: PackageManager.NameNotFoundException) {
         "$pkg (not installed)"
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        if (senderLazy.isInitialized()) sender.close()
+        super.onDestroy()
+    }
+
+    /** Updates the watchapp right away if it's open. If not, it gets the settings when it opens. */
+    private fun sendSettingsToWatch() {
+        scope.launch {
+            sender.sendDataToPebble(ShutterProtocol.WATCHAPP_UUID, ShutterProtocol.settingsMessage(this@MainActivity))
+        }
     }
 
     private fun addButton(label: String, onClick: () -> Unit) {
