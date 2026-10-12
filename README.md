@@ -15,7 +15,7 @@ For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left
 
 To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and tick **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo.
 
-Status: early proof of concept. It works on a Pixel with a Pebble Time 2, including from the lock screen.
+Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including from the lock screen. Other camera apps work after a one-time **Set shutter button**. Not on the Play Store yet; for now, install the files from a CI run (see [TESTING.md](TESTING.md)).
 
 | Pebble Time 2 (emery) | Core 2 Duo (flint) | Pebble Round 2 (gabbro) |
 |:---:|:---:|:---:|
