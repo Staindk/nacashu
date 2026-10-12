@@ -48,7 +48,7 @@ jobs:
           # The watchapp shows the time, so pin it to 10:09 to keep screenshots the same between runs.
           # pebble-tool sends the host's time to the emulator every time it connects, so the commands
           # after install run under faketime. The clock still ticks from 10:09, so sleeps work.
-          pin() { TZ=UTC FAKETIME_DONT_FAKE_MONOTONIC=1 faketime -f '@2026-01-01 10:09:00' pebble "$@"; }
+          pin() { TZ=UTC faketime -f '@2026-01-01 10:09:00' pebble "$@"; }
           for platform in emery flint gabbro; do
             start=$SECONDS
             pebble install --emulator $platform watch/build/*.pbw
