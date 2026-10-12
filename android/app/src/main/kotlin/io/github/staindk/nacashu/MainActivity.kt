@@ -49,10 +49,14 @@ class MainActivity : Activity() {
         // "Nacashu / Native Camera Shutter / for Pebble" in the watchapp's pixel font, drawn by
         // watch/tools/make_name_images.py. Pebble's trademark rules allow the word "Pebble" in
         // "for Pebble", but not its logo.
-        column.addView(ImageView(this).apply {
-            setImageResource(R.drawable.header)
-            contentDescription = "Nacashu, Native Camera Shutter, for Pebble"
-        })
+        // Wrap the drawable's own size: full width would centre it, unlike the rest of the screen.
+        column.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.header)
+                contentDescription = "Nacashu, Native Camera Shutter, for Pebble"
+            },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        )
         column.addView(
             View(this).apply { setBackgroundColor(0x40808080) },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, resources.displayMetrics.density.toInt().coerceAtLeast(1))
