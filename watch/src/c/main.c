@@ -39,6 +39,7 @@ static GBitmap *s_name_down;
 static GBitmap *s_name_up;
 static TextLayer *s_down_layer;
 static TextLayer *s_status_layer;
+static TextLayer *s_time_layer;
 static GRect s_status_box;
 static AppTimer *s_countdown_timer;
 static AppTimer *s_status_clear_timer;
@@ -46,17 +47,46 @@ static int s_countdown;
 static int s_timer_index = TIMER_DEFAULT_INDEX;
 static bool s_lefty;
 static char s_status_buf[32];
+static char s_time_buf[8];
+static char s_count_buf[4];
+// Fonts draw with space above the glyphs. These move the text up so its middle lines up with the
+// shutter's; the values were measured on emulator screenshots.
+static int16_t s_status_nudge;
+static int16_t s_time_nudge;
 
-// The status sits beside the shutter, centred on it, and wraps to two lines when it's long.
-static void prv_show_status_text(void) {
-  Layer *layer = text_layer_get_layer(s_status_layer);
+// Centres a text layer on the shutter, inside the status box.
+static void prv_centre_text(TextLayer *text, int16_t nudge) {
+  Layer *layer = text_layer_get_layer(text);
   layer_set_frame(layer, s_status_box);
-  text_layer_set_text(s_status_layer, s_status_buf);
-  const int16_t h = text_layer_get_content_size(s_status_layer).h;
+  const int16_t h = text_layer_get_content_size(text).h;
   GRect frame = s_status_box;
-  frame.origin.y += (frame.size.h - h) / 2 - 3;  // Gothic has extra space above the letters.
-  frame.size.h = h + 6;
+  frame.origin.y += (frame.size.h - h) / 2 + nudge;
+  frame.size.h = h + 8;
   layer_set_frame(layer, frame);
+}
+
+// The status sits beside the shutter and wraps to two lines when it's long. When there's no
+// status, the same spot shows the countdown, or else the time.
+static void prv_show_status_text(void) {
+  text_layer_set_text(s_status_layer, s_status_buf);
+  prv_centre_text(s_status_layer, s_status_nudge);
+  text_layer_set_text(s_time_layer, s_count_buf[0] ? s_count_buf : s_time_buf);
+  prv_centre_text(s_time_layer, s_time_nudge);
+  layer_set_hidden(text_layer_get_layer(s_time_layer), s_status_buf[0] != '\0');
+}
+
+static void prv_update_time(void) {
+  const time_t now = time(NULL);
+  strftime(s_time_buf, sizeof(s_time_buf), clock_is_24h_style() ? "%H:%M" : "%I:%M",
+           localtime(&now));
+  if (!clock_is_24h_style() && s_time_buf[0] == '0') {
+    memmove(s_time_buf, s_time_buf + 1, sizeof(s_time_buf) - 1);  // 9:41, not 09:41.
+  }
+  prv_show_status_text();
+}
+
+static void prv_tick(struct tm *tick_time, TimeUnits units_changed) {
+  prv_update_time();
 }
 
 static void prv_cancel_status_clear(void) {
@@ -100,12 +130,14 @@ static void prv_countdown_tick(void *context) {
   s_countdown--;
   if (s_countdown <= 0) {
     s_countdown_timer = NULL;
+    s_count_buf[0] = '\0';
     prv_send_cmd(CMD_SHUTTER);
     return;
   }
-  // The countdown stays up until it ends rather than being wiped.
+  // The countdown shows in the time's place, in its big font, until it ends.
   prv_cancel_status_clear();
-  snprintf(s_status_buf, sizeof(s_status_buf), "%d", s_countdown);
+  s_status_buf[0] = '\0';
+  snprintf(s_count_buf, sizeof(s_count_buf), "%d", s_countdown);
   prv_show_status_text();
   vibes_short_pulse();
   s_countdown_timer = app_timer_register(1000, prv_countdown_tick, NULL);
@@ -117,6 +149,7 @@ static bool prv_cancel_countdown(void) {
   }
   app_timer_cancel(s_countdown_timer);
   s_countdown_timer = NULL;
+  s_count_buf[0] = '\0';
   return true;
 }
 
@@ -313,12 +346,18 @@ static void prv_window_load(Window *window) {
   layer_add_child(root, bitmap_layer_get_layer(s_name_layer));
   s_down_layer = prv_label(root, GRect(inset, b.size.h - PBL_IF_ROUND_ELSE(54, 32), w, 24),
                            "Open camera", GTextAlignmentRight, FONT_KEY_GOTHIC_18);
-  // The smallest screen needs a smaller font to fit between the name and the shutter.
+  // The smallest screen needs smaller fonts to fit between the name and the shutter.
+  const bool big = b.size.w > 144;
   s_status_layer = prv_label(root, GRectZero, "", GTextAlignmentCenter,
-                             b.size.w > 144 ? FONT_KEY_GOTHIC_24_BOLD : FONT_KEY_GOTHIC_18_BOLD);
+                             big ? FONT_KEY_GOTHIC_28_BOLD : FONT_KEY_GOTHIC_24_BOLD);
   text_layer_set_overflow_mode(s_status_layer, GTextOverflowModeWordWrap);
+  s_status_nudge = -5;
+  s_time_layer = prv_label(root, GRectZero, "", GTextAlignmentCenter,
+                           big ? FONT_KEY_LECO_38_BOLD_NUMBERS : FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
+  s_time_nudge = big ? -6 : -4;
   prv_apply_lefty();
-  prv_set_status("Ready");
+  prv_update_time();
+  tick_timer_service_subscribe(MINUTE_UNIT, prv_tick);
 }
 
 static void prv_window_unload(Window *window) {
@@ -330,6 +369,7 @@ static void prv_window_unload(Window *window) {
   gbitmap_destroy(s_name_up);
   text_layer_destroy(s_down_layer);
   text_layer_destroy(s_status_layer);
+  text_layer_destroy(s_time_layer);
 }
 
 static void prv_init(void) {
@@ -363,6 +403,7 @@ static void prv_init(void) {
 }
 
 static void prv_deinit(void) {
+  tick_timer_service_unsubscribe();
   prv_cancel_countdown();
   prv_cancel_status_clear();
   window_destroy(s_window);
