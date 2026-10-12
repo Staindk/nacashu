@@ -85,7 +85,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs
-          git commit -m 'Update emulator screenshots'
-          # Pushes made with the workflow's token don't start new workflow runs, so this can't loop.
+          # [skip ci] stops GitHub creating a Watch run for the bot's push, which would otherwise wait for approval.
+          git commit -m 'Update emulator screenshots [skip ci]'
           git push origin "HEAD:refs/heads/$BRANCH" ||
             echo "::warning::Couldn't push screenshots, probably because the branch moved. The next run will try again."
