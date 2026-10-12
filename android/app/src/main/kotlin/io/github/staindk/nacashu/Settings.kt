@@ -49,8 +49,7 @@ object Settings {
     /** The saved shutter, or null if "Set shutter button" hasn't been done for this camera. */
     fun savedShutter(context: Context): SavedShutter? {
         val p = prefs(context)
-        // The key keeps the feature's old name ("Learn my shutter") so saved shutters still load.
-        if (!p.contains("shutter_learned")) return null
+        if (!p.contains("shutter_saved")) return null
         return SavedShutter(p.getString("shutter_id", null), p.getString("shutter_label", null))
     }
 
@@ -58,7 +57,7 @@ object Settings {
     fun setCameraPackage(context: Context, cameraPackage: String) {
         prefs(context).edit()
             .putString("camera_package", cameraPackage)
-            .remove("shutter_learned").remove("shutter_id").remove("shutter_label")
+            .remove("shutter_saved").remove("shutter_id").remove("shutter_label")
             .remove("tap_x").remove("tap_y")
             .apply()
     }
@@ -66,7 +65,7 @@ object Settings {
     /** Saves what the user tapped in "Set shutter button" for the current camera app. */
     fun saveShutter(context: Context, shutter: SavedShutter, tap: Pair<Float, Float>) {
         prefs(context).edit()
-            .putBoolean("shutter_learned", true)
+            .putBoolean("shutter_saved", true)
             .putString("shutter_id", shutter.viewId)
             .putString("shutter_label", shutter.label)
             .putFloat("tap_x", tap.first)

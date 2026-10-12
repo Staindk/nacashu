@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- No INTERNET permission on purpose: nothing Nacashu sees can leave the phone. -->
+
     <queries>
         <intent>
             <action android:name="android.media.action.STILL_IMAGE_CAMERA" />
