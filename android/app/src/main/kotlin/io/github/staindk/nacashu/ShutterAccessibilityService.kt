@@ -27,10 +27,10 @@ import java.io.IOException
  * screen reader) would. The camera app still takes the photo, so all of its processing applies.
  *
  * What it reads: only the chosen camera app's screen, to find the shutter (and, during "Set
- * shutter button", the spot the user taps). It ignores every accessibility event. The one
- * exception is the Debug dump, which the user starts by hand: if the camera isn't found, it saves
- * whatever app is on screen instead. What it keeps: the shutter's view ID, label and position, in
- * this app's private settings. The app has no internet permission, so nothing is sent anywhere.
+ * shutter button", the spot the user taps). It ignores every accessibility event. What it keeps:
+ * the shutter's view ID, label and position, in this app's private settings, plus the Debug dump
+ * of the camera screen if the user makes one. The app has no internet permission, so nothing is
+ * sent anywhere.
  */
 class ShutterAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
@@ -240,12 +240,14 @@ class ShutterAccessibilityService : AccessibilityService() {
 
     /**
      * Writes the camera's view tree to a private file so we can see its real IDs and labels. It
-     * only leaves the phone if the user taps "Share last dump".
+     * only leaves the phone if the user taps "Share last dump". Returns false if the camera
+     * wasn't on screen.
      */
-    fun dumpCameraUi() {
-        val root = cameraRoot() ?: rootInActiveWindow
+    fun dumpCameraUi(): Boolean {
+        // Only the chosen camera, never whatever other app happens to be on screen.
+        val root = cameraRoot()
         val text = if (root == null) {
-            "No window content available\n"
+            "${Settings.cameraPackage(this)} wasn't on screen\n"
         } else {
             StringBuilder().also { dump(root, 0, it) }.toString()
         }
@@ -254,6 +256,7 @@ class ShutterAccessibilityService : AccessibilityService() {
         } catch (e: IOException) {
             Log.e(TAG, "Could not write dump", e)
         }
+        return root != null
     }
 
     private fun cameraRoot(): AccessibilityNodeInfo? {

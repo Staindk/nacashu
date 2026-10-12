@@ -136,8 +136,7 @@ class MainActivity : Activity() {
                 if (service == null) {
                     toast("Accessibility service is off")
                 } else {
-                    service.dumpCameraUi()
-                    toast("Camera screen dumped")
+                    toast(if (service.dumpCameraUi()) "Camera screen dumped" else "Camera wasn't on screen")
                 }
             }, 5000)
         }
