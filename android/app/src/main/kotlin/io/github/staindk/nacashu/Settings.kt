@@ -46,6 +46,22 @@ object Settings {
         prefs(context).edit().putBoolean("accessibility_auto_off", value).apply()
     }
 
+    /** Show the help explainers and the About topics. */
+    fun helpOn(context: Context): Boolean =
+        prefs(context).getBoolean("help_on", false)
+
+    fun setHelpOn(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("help_on", value).apply()
+    }
+
+    /** The user tapped "Agree" on the accessibility disclosure, so step 1 goes straight to Android's settings. */
+    fun disclosureAccepted(context: Context): Boolean =
+        prefs(context).getBoolean("disclosure_accepted", false)
+
+    fun setDisclosureAccepted(context: Context) {
+        prefs(context).edit().putBoolean("disclosure_accepted", true).apply()
+    }
+
     /** The saved shutter, or null if "Set shutter button" hasn't been done for this camera. */
     fun savedShutter(context: Context): SavedShutter? {
         val p = prefs(context)

@@ -4,11 +4,15 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
+import android.text.Html
+import android.text.method.LinkMovementMethod
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
@@ -18,6 +22,7 @@ import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import io.rebble.pebblekit2.client.DefaultPebbleAndroidAppPicker
@@ -34,6 +39,8 @@ class MainActivity : Activity() {
     private val sender by lazy { DefaultPebbleSender(applicationContext) }
     private lateinit var column: LinearLayout
     private lateinit var status: TextView
+    // Everything the Help switch shows and hides.
+    private val helpViews = mutableListOf<View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,33 +57,52 @@ class MainActivity : Activity() {
         // watch/tools/make_name_images.py. Pebble's trademark rules allow the word "Pebble" in
         // "for Pebble", but not its logo.
         // Wrap the drawable's own size: full width would centre it, unlike the rest of the screen.
-        column.addView(
+        // The Help switch sits at the far right of the same row.
+        val headerRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        headerRow.addView(
             ImageView(this).apply {
                 setImageResource(R.drawable.header)
                 contentDescription = "Nacashu, Native Camera Shutter, for Pebble"
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
+        headerRow.addView(View(this), LinearLayout.LayoutParams(0, 0, 1f))
+        headerRow.addView(Switch(this).apply {
+            text = "Help"
+            textSize = 16f
+            setTextColor(themeColor(android.R.attr.textColorPrimary))
+            isChecked = Settings.helpOn(this@MainActivity)
+            setOnCheckedChangeListener { _, on ->
+                Settings.setHelpOn(this@MainActivity, on)
+                showHelp(on)
+            }
+        })
+        column.addView(headerRow)
         column.addView(
             View(this).apply { setBackgroundColor(0x40808080) },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, resources.displayMetrics.density.toInt().coerceAtLeast(1))
                 .apply { setMargins(0, pad, 0, pad) },
         )
 
+        addAboutTopics(pad)
+
         status = TextView(this).apply {
             textSize = 16f
-            // A plain TextView defaults to a dim grey; use the theme's main text colour.
-            val attrs = theme.obtainStyledAttributes(intArrayOf(android.R.attr.textColorPrimary))
-            setTextColor(attrs.getColorStateList(0))
-            attrs.recycle()
+            setTextColor(themeColor(android.R.attr.textColorPrimary))
             setPadding(0, 0, 0, pad)
         }
         column.addView(status)
 
         addButton("1. Turn on accessibility service") {
-            startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
+            if (Settings.disclosureAccepted(this)) {
+                startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
+            } else {
+                showDisclosure()
+            }
         }
+        explain(Help.STEP_ACCESSIBILITY)
         addButton("2. Choose camera app") { chooseCamera() }
+        explain(Help.STEP_CAMERA)
         addButton("3. Set shutter button") {
             val service = ShutterAccessibilityService.instance
             if (service == null) {
@@ -85,6 +111,7 @@ class MainActivity : Activity() {
                 service.startShutterSetup()
             }
         }
+        explain(Help.STEP_SHUTTER)
 
         column.addView(CheckBox(this).apply {
             text = "Open camera when the watchapp starts"
@@ -93,6 +120,7 @@ class MainActivity : Activity() {
                 Settings.setAutoOpenCamera(this@MainActivity, checked)
             }
         })
+        explain(Help.AUTO_OPEN)
 
         column.addView(CheckBox(this).apply {
             text = "Take photo when quick launching Nacashu on Pebble"
@@ -101,6 +129,7 @@ class MainActivity : Activity() {
                 Settings.setSnapOnQuickLaunch(this@MainActivity, checked)
             }
         })
+        explain(Help.QUICK_LAUNCH)
 
         column.addView(CheckBox(this).apply {
             text = "Lefty: button labels on the left of the watch screen"
@@ -110,6 +139,7 @@ class MainActivity : Activity() {
                 sendSettingsToWatch()
             }
         })
+        explain(Help.LEFTY)
 
         // Test and debug buttons, hidden until the user opens this section.
         val testSection = LinearLayout(this).apply {
@@ -121,6 +151,7 @@ class MainActivity : Activity() {
             testSection.visibility = if (open) View.VISIBLE else View.GONE
             (it as Button).text = if (open) "Test / Debug ▾" else "Test / Debug ▸"
         }
+        explain(Help.TEST_DEBUG)
         column.addView(testSection)
         addButton("Test: open camera", testSection) {
             runCommand(ShutterProtocol.CMD_OPEN_CAMERA, 0)
@@ -169,6 +200,85 @@ class MainActivity : Activity() {
                 insets
             }
         })
+        showHelp(Settings.helpOn(this))
+    }
+
+    /** A text colour from the theme. Plain TextViews otherwise default to a dim grey. */
+    private fun themeColor(attr: Int): ColorStateList? {
+        val attrs = theme.obtainStyledAttributes(intArrayOf(attr))
+        val color = attrs.getColorStateList(0)
+        attrs.recycle()
+        return color
+    }
+
+    private fun showHelp(on: Boolean) {
+        for (view in helpViews) view.visibility = if (on) View.VISIBLE else View.GONE
+    }
+
+    /** A grey explainer line under the setting just added, shown when Help is on. */
+    private fun explain(text: String) {
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val view = TextView(this).apply {
+            this.text = text
+            textSize = 13f
+            setTextColor(themeColor(android.R.attr.textColorSecondary))
+            setPadding(pad / 4, 0, 0, pad / 2)
+        }
+        column.addView(view)
+        helpViews += view
+    }
+
+    /** "About Nacashu": one collapsed line per topic, tap to open. Shown when Help is on. */
+    private fun addAboutTopics(pad: Int) {
+        val about = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, pad)
+        }
+        about.addView(TextView(this).apply {
+            text = "About Nacashu"
+            textSize = 18f
+            setTextColor(themeColor(android.R.attr.textColorPrimary))
+        })
+        for ((title, html) in Help.TOPICS) {
+            val body = TextView(this).apply {
+                text = Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
+                movementMethod = LinkMovementMethod.getInstance()
+                textSize = 14f
+                setTextColor(themeColor(android.R.attr.textColorSecondary))
+                setPadding(pad / 2, 0, 0, pad / 2)
+                visibility = View.GONE
+            }
+            about.addView(TextView(this).apply {
+                text = "$title ▸"
+                textSize = 16f
+                setTextColor(themeColor(android.R.attr.textColorPrimary))
+                setPadding(0, pad / 2, 0, pad / 2)
+                setOnClickListener {
+                    val open = body.visibility != View.VISIBLE
+                    body.visibility = if (open) View.VISIBLE else View.GONE
+                    text = if (open) "$title ▾" else "$title ▸"
+                }
+            })
+            about.addView(body)
+        }
+        column.addView(about)
+        helpViews += about
+    }
+
+    /**
+     * Google Play's prominent disclosure: says what accessibility access is for before Android's
+     * settings open. "Not now" leaves everything as it was, so step 1 shows this again next time.
+     */
+    private fun showDisclosure() {
+        AlertDialog.Builder(this)
+            .setTitle(Help.DISCLOSURE_TITLE)
+            .setMessage(Html.fromHtml(Help.DISCLOSURE, Html.FROM_HTML_MODE_LEGACY))
+            .setNegativeButton("Not now", null)
+            .setPositiveButton("Agree") { _, _ ->
+                Settings.setDisclosureAccepted(this)
+                startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .show()
     }
 
     override fun onResume() {
