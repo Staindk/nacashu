@@ -30,6 +30,7 @@ import java.io.IOException
 class ShutterAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var overlay: TextView? = null
+    // When openCamera() last launched the camera, so Quick Launch knows if it has just started.
     private var cameraStartedAt = 0L
     private val learningTimedOut = Runnable { finishLearning("No tap seen, so the shutter wasn't set. Please try again.") }
 
@@ -187,21 +188,32 @@ class ShutterAccessibilityService : AccessibilityService() {
         return intent
     }
 
-    /** Quick Launch: brings the camera up if it isn't already, then presses the shutter. */
+    /**
+     * Quick Launch: brings the camera up if it isn't already, then presses the shutter.
+     *
+     * A camera that was already open is pressed straight away. If Nacashu opened it less than
+     * [CAMERA_SETTLE_MS] ago (just now, or when the watchapp started), this first waits out the
+     * rest of that time so the camera is ready to take the photo.
+     */
     fun openCameraAndPressShutter(onStatus: (Int) -> Unit) {
         val opened = openCamera()
         if (opened != ShutterProtocol.STATUS_OK) return onStatus(opened)
-        pressShutterWhenReady(SystemClock.uptimeMillis() + CAMERA_START_TIMEOUT_MS, onStatus)
+
+        val msSinceStarted = SystemClock.uptimeMillis() - cameraStartedAt
+        val wait = (CAMERA_SETTLE_MS - msSinceStarted).coerceAtLeast(0)
+        handler.postDelayed({ pressShutterWhenOnScreen(CAMERA_CHECKS, onStatus) }, wait)
     }
 
-    /** Waits for the camera to be on screen and to have had a moment to start its preview. */
-    private fun pressShutterWhenReady(deadline: Long, onStatus: (Int) -> Unit) {
-        val now = SystemClock.uptimeMillis()
-        if (now >= deadline || (cameraRoot() != null && now >= cameraStartedAt + CAMERA_SETTLE_MS)) {
+    /**
+     * Presses the shutter once the camera is on screen, checking every [CAMERA_CHECK_MS].
+     * After [checksLeft] checks it presses anyway, and pressShutter reports the camera isn't open.
+     */
+    private fun pressShutterWhenOnScreen(checksLeft: Int, onStatus: (Int) -> Unit) {
+        if (cameraRoot() != null || checksLeft == 0) {
             pressShutter(onStatus)
-        } else {
-            handler.postDelayed({ pressShutterWhenReady(deadline, onStatus) }, 100)
+            return
         }
+        handler.postDelayed({ pressShutterWhenOnScreen(checksLeft - 1, onStatus) }, CAMERA_CHECK_MS)
     }
 
     fun pressShutter(onStatus: (Int) -> Unit) {
@@ -346,11 +358,12 @@ class ShutterAccessibilityService : AccessibilityService() {
 
         private const val LEARN_TIMEOUT_MS = 60_000L
 
-        // Quick Launch: how long after opening the camera to wait before pressing its shutter, so
-        // the camera is ready to take the photo, and the most to wait for it to come up at all.
-        // A first guess; tune it on a real phone.
+        // Quick Launch: the camera gets this long after Nacashu opens it before its shutter is
+        // pressed, so it's ready to take the photo. A first guess; tune it on a real phone.
         private const val CAMERA_SETTLE_MS = 1_000L
-        private const val CAMERA_START_TIMEOUT_MS = 5_000L
+        // Then up to 4 more seconds (40 checks, 100 ms apart) for it to show up on screen.
+        private const val CAMERA_CHECK_MS = 100L
+        private const val CAMERA_CHECKS = 40
 
         // Built-in shutter view IDs per camera app, so these work without "Set shutter button".
         // Add more as people report them (the "Dump camera screen" button shows the IDs).
