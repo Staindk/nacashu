@@ -184,6 +184,27 @@ class ShutterAccessibilityService : AccessibilityService() {
         return intent
     }
 
+    /** Quick Launch: presses the shutter, opening the camera first if it isn't on screen. */
+    fun openCameraAndPressShutter(onStatus: (Int) -> Unit) {
+        // Already on screen: take the photo straight away.
+        if (cameraRoot() != null) return pressShutter(onStatus)
+
+        val opened = openCamera()
+        if (opened != ShutterProtocol.STATUS_OK) return onStatus(opened)
+        pressShutterWhenOnScreen(CAMERA_CHECKS, onStatus)
+    }
+
+    /** Checks every [CAMERA_CHECK_MS] for the camera to come up, then presses the shutter. */
+    private fun pressShutterWhenOnScreen(checksLeft: Int, onStatus: (Int) -> Unit) {
+        when {
+            // It just came up: give it a moment to focus and set the exposure.
+            cameraRoot() != null -> handler.postDelayed({ pressShutter(onStatus) }, CAMERA_SETTLE_MS)
+            // It never came up: pressShutter reports that the camera isn't open.
+            checksLeft == 0 -> pressShutter(onStatus)
+            else -> handler.postDelayed({ pressShutterWhenOnScreen(checksLeft - 1, onStatus) }, CAMERA_CHECK_MS)
+        }
+    }
+
     fun pressShutter(onStatus: (Int) -> Unit) {
         val root = cameraRoot() ?: return onStatus(ShutterProtocol.STATUS_CAMERA_NOT_OPEN)
 
@@ -325,6 +346,12 @@ class ShutterAccessibilityService : AccessibilityService() {
         private const val TAG = "ShutterA11y"
 
         private const val LEARN_TIMEOUT_MS = 60_000L
+
+        // Quick Launch: wait up to 5 s (50 checks, 100 ms apart) for the camera to come up, then
+        // 250 ms more so it can focus. The 250 ms is a first guess; tune it on a real phone.
+        private const val CAMERA_CHECK_MS = 100L
+        private const val CAMERA_CHECKS = 50
+        private const val CAMERA_SETTLE_MS = 250L
 
         // Built-in shutter view IDs per camera app, so these work without "Set shutter button".
         // Add more as people report them (the "Dump camera screen" button shows the IDs).

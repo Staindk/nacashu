@@ -13,6 +13,8 @@ Hold **UP** to cycle the timer through 1, 3, 5, 10 and 30 seconds. The watch sho
 
 For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then tick **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring in https://github.com/Staindk/nacashu/issues/6).
 
+To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and tick **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo.
+
 Status: early proof of concept. It works on a Pixel with a Pebble Time 2, including from the lock screen.
 
 | Pebble Time 2 (emery) | Core 2 Duo (flint) | Pebble Round 2 (gabbro) |

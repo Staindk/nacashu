@@ -7,6 +7,7 @@
 
 #define CMD_SHUTTER     1
 #define CMD_OPEN_CAMERA 2
+#define CMD_QUICK_LAUNCH 3
 
 #define STATUS_OK               0
 #define STATUS_NO_ACCESSIBILITY 1
@@ -342,6 +343,15 @@ static void prv_init(void) {
   app_message_register_inbox_received(prv_inbox_received);
   app_message_register_outbox_failed(prv_outbox_failed);
   app_message_open(64, 64);
+
+  // Opened by holding a button on the watchface (Quick Launch). The phone opens the camera and
+  // takes a photo if that's turned on in its settings, and ignores this if it's off.
+  DictionaryIterator *iter;
+  if (launch_reason() == APP_LAUNCH_QUICK_LAUNCH && connection_service_peek_pebble_app_connection() &&
+      app_message_outbox_begin(&iter) == APP_MSG_OK) {
+    dict_write_uint8(iter, KEY_CMD, CMD_QUICK_LAUNCH);
+    app_message_outbox_send();
+  }
 
   s_window = window_create();
   window_set_click_config_provider(s_window, prv_click_config);
