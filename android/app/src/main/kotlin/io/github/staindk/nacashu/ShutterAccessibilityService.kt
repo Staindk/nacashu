@@ -25,11 +25,17 @@ import java.io.IOException
 /**
  * Finds the stock camera's shutter button and clicks it, the same way TalkBack (Android's
  * screen reader) would. The camera app still takes the photo, so all of its processing applies.
+ *
+ * What it reads: only the chosen camera app's screen, to find the shutter (and, during "Set
+ * shutter button", the spot the user taps). It ignores every accessibility event. The one
+ * exception is the Debug dump, which the user starts by hand: if the camera isn't found, it saves
+ * whatever app is on screen instead. What it keeps: the shutter's view ID, label and position, in
+ * this app's private settings. The app has no internet permission, so nothing is sent anywhere.
  */
 class ShutterAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var overlay: TextView? = null
-    private val learningTimedOut = Runnable { finishLearning("No tap seen, so the shutter wasn't set. Please try again.") }
+    private val setupTimedOut = Runnable { finishShutterSetup("No tap seen, so the shutter wasn't set. Please try again.") }
 
     override fun onServiceConnected() {
         instance = this
@@ -52,16 +58,16 @@ class ShutterAccessibilityService : AccessibilityService() {
      * camera button is under it), and 3 seconds later the layer goes away and Nacashu comes back
      * to the front. With no tap, the same happens after a minute, and nothing is saved.
      */
-    fun startLearning() {
+    fun startShutterSetup() {
         // Drop anything left from an earlier round, such as its pending trip back to Nacashu.
         handler.removeCallbacksAndMessages(null)
         removeOverlay()
-        showLearnOverlay()
+        showSetupLayer()
         openCamera()
-        handler.postDelayed(learningTimedOut, LEARN_TIMEOUT_MS)
+        handler.postDelayed(setupTimedOut, SETUP_TIMEOUT_MS)
     }
 
-    private fun showLearnOverlay() {
+    private fun showSetupLayer() {
         val dp = resources.displayMetrics.density
         val view = TextView(this).apply {
             text = "Nacashu: tap your camera's shutter button once"
@@ -71,7 +77,7 @@ class ShutterAccessibilityService : AccessibilityService() {
             gravity = Gravity.CENTER_HORIZONTAL
             setPadding((24 * dp).toInt(), (120 * dp).toInt(), (24 * dp).toInt(), 0)
             setOnTouchListener { _, event ->
-                if (event.action == MotionEvent.ACTION_UP) learnAt(event.rawX, event.rawY)
+                if (event.action == MotionEvent.ACTION_UP) setShutterAt(event.rawX, event.rawY)
                 true
             }
         }
@@ -86,24 +92,24 @@ class ShutterAccessibilityService : AccessibilityService() {
         overlay = view
     }
 
-    private fun learnAt(x: Float, y: Float) {
+    private fun setShutterAt(x: Float, y: Float) {
         val root = cameraRoot()
         if (root == null) {
-            // Tapped before the camera came up, so there's nothing under the tap to learn yet.
+            // Tapped before the camera came up, so there's nothing under the tap to save yet.
             overlay?.text = "Wait for the camera to open, then tap its shutter button"
             return
         }
         val node = nodeAt(root, x.toInt(), y.toInt())
         val label = (node?.contentDescription ?: node?.text)?.toString()?.takeIf { it.isNotBlank() }
-        val shutter = Settings.LearnedShutter(node?.viewIdResourceName, label)
-        Settings.saveLearnedShutter(this, shutter, x to y)
-        Log.i(TAG, "Learned shutter at ($x, $y): $shutter")
-        finishLearning("Shutter set: ${label ?: shutter.viewId ?: "that spot on the screen"}")
+        val shutter = Settings.SavedShutter(node?.viewIdResourceName, label)
+        Settings.saveShutter(this, shutter, x to y)
+        Log.i(TAG, "Shutter set at ($x, $y): $shutter")
+        finishShutterSetup("Shutter set: ${label ?: shutter.viewId ?: "that spot on the screen"}")
     }
 
     /** Shows [message] on the layer for a few seconds, then removes it and goes back to Nacashu. */
-    private fun finishLearning(message: String) {
-        handler.removeCallbacks(learningTimedOut)
+    private fun finishShutterSetup(message: String) {
+        handler.removeCallbacks(setupTimedOut)
         val view = overlay ?: return
         view.text = "$message\n\nGoing back to Nacashu…"
         view.setOnTouchListener(null)
@@ -212,8 +218,8 @@ class ShutterAccessibilityService : AccessibilityService() {
 
         val shutter = findShutter(root)
         if (shutter != null) {
-            // A learned button is exactly what the user tapped; don't widen it to a parent.
-            val target = clickTarget(shutter, widen = Settings.learnedShutter(this) == null)
+            // A saved button is exactly what the user tapped; don't widen it to a parent.
+            val target = clickTarget(shutter, widen = Settings.savedShutter(this) == null)
             val bounds = Rect().also { target.getBoundsInScreen(it) }
             if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                 Settings.saveTapPoint(this, bounds.exactCenterX(), bounds.exactCenterY())
@@ -232,8 +238,11 @@ class ShutterAccessibilityService : AccessibilityService() {
         tap(x, y, onStatus)
     }
 
-    /** Writes the camera's view tree to a file so we can learn its real IDs and labels. */
-    fun dumpCameraUi(): String {
+    /**
+     * Writes the camera's view tree to a private file so we can see its real IDs and labels. It
+     * only leaves the phone if the user taps "Share last dump".
+     */
+    fun dumpCameraUi() {
         val root = cameraRoot() ?: rootInActiveWindow
         val text = if (root == null) {
             "No window content available\n"
@@ -245,8 +254,6 @@ class ShutterAccessibilityService : AccessibilityService() {
         } catch (e: IOException) {
             Log.e(TAG, "Could not write dump", e)
         }
-        Log.i(TAG, text)
-        return text
     }
 
     private fun cameraRoot(): AccessibilityNodeInfo? {
@@ -256,17 +263,17 @@ class ShutterAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Once a shutter has been learned, only that is used: its view ID, then its label. When
-     * neither is found this returns null and the caller taps the learned position. Built-in IDs
-     * and shutter-like labels are only for cameras that haven't been learned.
+     * Once a shutter has been set, only that is used: its view ID, then its label. When
+     * neither is found this returns null and the caller taps the saved position. Built-in IDs
+     * and shutter-like labels are only for cameras that haven't been set up.
      */
     private fun findShutter(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        val learned = Settings.learnedShutter(this)
-        if (learned != null) {
-            learned.viewId?.let { id ->
+        val saved = Settings.savedShutter(this)
+        if (saved != null) {
+            saved.viewId?.let { id ->
                 root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }?.let { return it }
             }
-            return learned.label?.let { label -> findNode(root) { it.equals(label, ignoreCase = true) } }
+            return saved.label?.let { label -> findNode(root) { it.equals(label, ignoreCase = true) } }
         }
         for (id in KNOWN_SHUTTER_IDS[root.packageName?.toString()].orEmpty()) {
             root.findAccessibilityNodeInfosByViewId(id).firstOrNull { it.isVisibleToUser }?.let { return it }
@@ -347,7 +354,7 @@ class ShutterAccessibilityService : AccessibilityService() {
     companion object {
         private const val TAG = "ShutterA11y"
 
-        private const val LEARN_TIMEOUT_MS = 60_000L
+        private const val SETUP_TIMEOUT_MS = 60_000L
 
         // Quick Launch: wait up to 5 s (50 checks, 100 ms apart) for the camera to come up, then
         // 250 ms more so it can focus. The 250 ms is a first guess; tune it on a real phone.

@@ -82,7 +82,7 @@ class MainActivity : Activity() {
             if (service == null) {
                 toast("Do step 1 first")
             } else {
-                service.startLearning()
+                service.startShutterSetup()
             }
         }
 
@@ -187,11 +187,11 @@ class MainActivity : Activity() {
     private fun updateStatus() {
         val pebbleApp = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()
         val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
-        val learned = Settings.learnedShutter(this)
+        val saved = Settings.savedShutter(this)
         val shutter = when {
-            learned != null && (learned.label != null || learned.viewId != null) ->
-                "set to \"${learned.label ?: "no label"}\" (ID: ${learned.viewId ?: "none"})"
-            learned != null -> "set to a position on screen"
+            saved != null && (saved.label != null || saved.viewId != null) ->
+                "set to \"${saved.label ?: "no label"}\" (ID: ${saved.viewId ?: "none"})"
+            saved != null -> "set to a position on screen"
             Settings.cameraPackage(this) == Settings.PIXEL_CAMERA &&
                 packageManager.getLaunchIntentForPackage(Settings.PIXEL_CAMERA) != null -> "built in for Pixel Camera"
             else -> "not set up (step 3)"

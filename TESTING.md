@@ -56,6 +56,6 @@ If the watch shows "Phone app?" or nothing happens, run
 | Done | The shutter was clicked. |
 | Done (tap) | The shutter was tapped by screen position. |
 | Enable service | The accessibility service is off. |
-| Camera closed | The camera app isn't on screen. Press UP. |
+| Camera closed | The camera app isn't on screen. Press DOWN. |
 | No shutter | The shutter wasn't found and the tap failed. |
 | Phone app? / No phone | The message didn't reach the phone. |

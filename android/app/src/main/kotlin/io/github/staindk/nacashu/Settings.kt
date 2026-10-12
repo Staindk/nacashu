@@ -7,7 +7,7 @@ object Settings {
     const val PIXEL_CAMERA = "com.google.android.GoogleCamera"
 
     /** The button under the user's tap in "Set shutter button". Both are null if it had neither. */
-    data class LearnedShutter(val viewId: String?, val label: String?)
+    data class SavedShutter(val viewId: String?, val label: String?)
 
     private fun prefs(context: Context): SharedPreferences =
         context.getSharedPreferences("settings", Context.MODE_PRIVATE)
@@ -46,14 +46,15 @@ object Settings {
         prefs(context).edit().putBoolean("accessibility_auto_off", value).apply()
     }
 
-    /** The learned shutter, or null if "Set shutter button" hasn't been done for this camera. */
-    fun learnedShutter(context: Context): LearnedShutter? {
+    /** The saved shutter, or null if "Set shutter button" hasn't been done for this camera. */
+    fun savedShutter(context: Context): SavedShutter? {
         val p = prefs(context)
+        // The key keeps the feature's old name ("Learn my shutter") so saved shutters still load.
         if (!p.contains("shutter_learned")) return null
-        return LearnedShutter(p.getString("shutter_id", null), p.getString("shutter_label", null))
+        return SavedShutter(p.getString("shutter_id", null), p.getString("shutter_label", null))
     }
 
-    /** Switches to another camera app and forgets the shutter learned for the old one. */
+    /** Switches to another camera app and forgets the shutter saved for the old one. */
     fun setCameraPackage(context: Context, cameraPackage: String) {
         prefs(context).edit()
             .putString("camera_package", cameraPackage)
@@ -63,7 +64,7 @@ object Settings {
     }
 
     /** Saves what the user tapped in "Set shutter button" for the current camera app. */
-    fun saveLearnedShutter(context: Context, shutter: LearnedShutter, tap: Pair<Float, Float>) {
+    fun saveShutter(context: Context, shutter: SavedShutter, tap: Pair<Float, Float>) {
         prefs(context).edit()
             .putBoolean("shutter_learned", true)
             .putString("shutter_id", shutter.viewId)

@@ -14,7 +14,7 @@ android {
         versionName = "0.1.0"
     }
 
-    // CI signs with a permanent key from GitHub secrets (see .github/workflows/build.yml), so
+    // CI signs with a permanent key from GitHub secrets (see .github/workflows/android.yml), so
     // each new APK installs as an update. Local builds without it use the usual debug key.
     val keystore = System.getenv("NACASHU_KEYSTORE")
     val signing = if (keystore == null) {
