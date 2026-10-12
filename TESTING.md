@@ -37,6 +37,7 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 5. Hold **UP** to change the delay (1, 3, 5, 10, 30 s). The highlight moves along the row and the choice is kept next time. After updating from an older version the delay starts at 3 s again.
 6. Press **DOWN** to bring the camera back to the front.
 7. Lefty mode: turn on **Settings > Display > Orientation > Left-Handed** on the watch, tick **Lefty** in the phone app, then open Nacashu on the watch. The labels move to the left, next to the buttons. Toggling Lefty while Nacashu is open on the watch should move them straight away.
+8. Quick Launch: on the watch, set Nacashu as a Quick Launch app in **Settings > Quick Launch**. Tick **Take photo when quick launching Nacashu on Pebble** in the phone app, go back to the watchface and hold that button. The camera should open and take a photo, and the watch shows "Done". With the box unticked, the same hold just opens Nacashu.
 
 Try the same with the phone locked. The camera opens in secure mode, and the shutter should still work.
 

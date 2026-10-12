@@ -16,6 +16,8 @@ object ShutterProtocol {
 
     const val CMD_SHUTTER = 1
     const val CMD_OPEN_CAMERA = 2
+    /** The watchapp was opened with Quick Launch. Takes a photo if the user turned that on. */
+    const val CMD_QUICK_LAUNCH = 3
 
     const val STATUS_OK = 0
     const val STATUS_NO_ACCESSIBILITY = 1
@@ -43,6 +45,7 @@ object ShutterProtocol {
             service == null -> onStatus(STATUS_NO_ACCESSIBILITY)
             cmd == CMD_SHUTTER -> service.pressShutter(onStatus)
             cmd == CMD_OPEN_CAMERA -> onStatus(service.openCamera())
+            cmd == CMD_QUICK_LAUNCH -> service.openCameraAndPressShutter(onStatus)
             else -> onStatus(STATUS_SHUTTER_NOT_FOUND)
         }
     }

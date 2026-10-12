@@ -30,6 +30,9 @@ class ShutterListenerService : BasePebbleListenerService() {
             else -> return ReceiveResult.Nack
         }
         Log.d(TAG, "cmd=$cmd from $watch")
+        if (cmd == ShutterProtocol.CMD_QUICK_LAUNCH && !Settings.snapOnQuickLaunch(this)) {
+            return ReceiveResult.Ack
+        }
         ShutterProtocol.run(cmd) { status ->
             Log.d(TAG, "cmd=$cmd -> ${ShutterProtocol.statusName(status)}")
             sendStatus(status, watch)

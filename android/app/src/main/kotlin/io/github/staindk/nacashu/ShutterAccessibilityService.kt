@@ -11,6 +11,7 @@ import android.graphics.PixelFormat
 import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.MediaStore
 import android.util.Log
 import android.view.Gravity
@@ -29,6 +30,7 @@ import java.io.IOException
 class ShutterAccessibilityService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var overlay: TextView? = null
+    private var cameraStartedAt = 0L
     private val learningTimedOut = Runnable { finishLearning("No tap seen, so the shutter wasn't set. Please try again.") }
 
     override fun onServiceConnected() {
@@ -168,6 +170,7 @@ class ShutterAccessibilityService : AccessibilityService() {
             // Allowed from the background: a running accessibility service is exempt from
             // background activity launch restrictions.
             startActivity(intent)
+            cameraStartedAt = SystemClock.uptimeMillis()
             ShutterProtocol.STATUS_OK
         } catch (e: RuntimeException) {
             Log.e(TAG, "Could not open camera", e)
@@ -182,6 +185,23 @@ class ShutterAccessibilityService : AccessibilityService() {
             intent.setPackage(pkg)
         }
         return intent
+    }
+
+    /** Quick Launch: brings the camera up if it isn't already, then presses the shutter. */
+    fun openCameraAndPressShutter(onStatus: (Int) -> Unit) {
+        val opened = openCamera()
+        if (opened != ShutterProtocol.STATUS_OK) return onStatus(opened)
+        pressShutterWhenReady(SystemClock.uptimeMillis() + CAMERA_START_TIMEOUT_MS, onStatus)
+    }
+
+    /** Waits for the camera to be on screen and to have had a moment to start its preview. */
+    private fun pressShutterWhenReady(deadline: Long, onStatus: (Int) -> Unit) {
+        val now = SystemClock.uptimeMillis()
+        if (now >= deadline || (cameraRoot() != null && now >= cameraStartedAt + CAMERA_SETTLE_MS)) {
+            pressShutter(onStatus)
+        } else {
+            handler.postDelayed({ pressShutterWhenReady(deadline, onStatus) }, 100)
+        }
     }
 
     fun pressShutter(onStatus: (Int) -> Unit) {
@@ -325,6 +345,12 @@ class ShutterAccessibilityService : AccessibilityService() {
         private const val TAG = "ShutterA11y"
 
         private const val LEARN_TIMEOUT_MS = 60_000L
+
+        // Quick Launch: how long after opening the camera to wait before pressing its shutter, so
+        // the camera is ready to take the photo, and the most to wait for it to come up at all.
+        // A first guess; tune it on a real phone.
+        private const val CAMERA_SETTLE_MS = 1_000L
+        private const val CAMERA_START_TIMEOUT_MS = 5_000L
 
         // Built-in shutter view IDs per camera app, so these work without "Set shutter button".
         // Add more as people report them (the "Dump camera screen" button shows the IDs).

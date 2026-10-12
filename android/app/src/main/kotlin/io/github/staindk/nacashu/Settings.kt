@@ -22,6 +22,14 @@ object Settings {
         prefs(context).edit().putBoolean("auto_open_camera", value).apply()
     }
 
+    /** Take a photo straight away when the watchapp is opened with Quick Launch. */
+    fun snapOnQuickLaunch(context: Context): Boolean =
+        prefs(context).getBoolean("snap_on_quick_launch", false)
+
+    fun setSnapOnQuickLaunch(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("snap_on_quick_launch", value).apply()
+    }
+
     /** Button labels on the left of the watch screen, for PebbleOS's Left-Handed mode. */
     fun lefty(context: Context): Boolean =
         prefs(context).getBoolean("lefty", false)

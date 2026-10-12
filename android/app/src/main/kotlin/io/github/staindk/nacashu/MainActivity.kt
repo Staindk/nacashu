@@ -77,6 +77,14 @@ class MainActivity : Activity() {
         })
 
         column.addView(CheckBox(this).apply {
+            text = "Take photo when quick launching Nacashu on Pebble"
+            isChecked = Settings.snapOnQuickLaunch(this@MainActivity)
+            setOnCheckedChangeListener { _, checked ->
+                Settings.setSnapOnQuickLaunch(this@MainActivity, checked)
+            }
+        })
+
+        column.addView(CheckBox(this).apply {
             text = "Lefty: button labels on the left of the watch screen"
             isChecked = Settings.lefty(this@MainActivity)
             setOnCheckedChangeListener { _, checked ->
