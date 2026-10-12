@@ -5,10 +5,14 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorFilter
+import android.graphics.Paint
+import android.graphics.PixelFormat
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
 import android.os.Handler
@@ -33,6 +37,7 @@ import android.widget.TextView
 import android.widget.Toast
 import io.rebble.pebblekit2.client.DefaultPebbleAndroidAppPicker
 import io.rebble.pebblekit2.client.DefaultPebbleSender
+import kotlin.math.roundToInt
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -236,49 +241,31 @@ class MainActivity : Activity() {
     }
 
     /**
-     * An on/off switch, label on the left and switch on the right like Android's settings. Kept
-     * black and white like the rest of the app: when on, the track is filled with the text colour
-     * and the knob takes the background colour; when off, the track is a grey outline. Drawn on a
-     * plain CheckBox because Android's Switch stretches custom knobs to its own size.
+     * An on/off switch, label on the left and switch on the right like Android's settings. Drawn
+     * as the shutter from the app icon, kept black and white like the rest of the app: the full
+     * shutter when on, an empty grey ring when off.
      */
     private fun toggle(label: String?, checked: Boolean, onChange: (Boolean) -> Unit) = CheckBox(this).apply {
         text = label
         textSize = 16f
         setTextColor(themeColor(android.R.attr.textColorPrimary))
-        // A labelled switch spans the row, so the switches line up at the right edge.
-        if (label != null) {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        }
-        val dp = resources.displayMetrics.density
         val fg = themeColor(android.R.attr.textColorPrimary)?.defaultColor ?: Color.WHITE
-        val bg = themeColor(android.R.attr.colorBackground)?.defaultColor ?: Color.BLACK
-        val grey = 0xFF9E9E9E.toInt()
-        val w = (40 * dp).toInt()
-        val h = (22 * dp).toInt()
-        val knob = (12 * dp).toInt()
-        val gap = (h - knob) / 2
-        fun pill(on: Boolean) = LayerDrawable(arrayOf(
-            GradientDrawable().apply {
-                cornerRadius = h / 2f
-                setColor(if (on) fg else Color.TRANSPARENT)
-                setStroke((2 * dp).toInt(), if (on) fg else grey)
-                setSize(w, h)
-            },
-            GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(if (on) bg else grey)
-            },
-        )).apply {
-            setLayerSize(1, knob, knob)
-            setLayerGravity(1, Gravity.CENTER_VERTICAL or (if (on) Gravity.END else Gravity.START))
-            setLayerInsetRelative(1, gap, 0, gap, 0)
-        }
+        val pixel = (2.4f * resources.displayMetrics.density).roundToInt() // Whole pixels stay crisp.
         buttonDrawable = null
         setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_checked), pill(true))
-            addState(intArrayOf(), pill(false))
+            addState(intArrayOf(android.R.attr.state_checked), ShutterDrawable(pixel, fg, fg))
+            addState(intArrayOf(), ShutterDrawable(pixel, 0xFF9E9E9E.toInt(), null))
         }, null)
-        compoundDrawablePadding = (16 * dp).toInt()
+        if (label != null) {
+            // A labelled switch spans the row, so the switches line up at the right edge.
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            compoundDrawablePadding = pixel * 6
+        } else {
+            // Just the shutter, so it centres under whatever sits above it.
+            setPadding(pixel * 2, pixel * 2, pixel * 2, pixel * 2)
+            minWidth = 0
+            minimumWidth = 0
+        }
         // TalkBack calls it a switch, not a checkbox.
         accessibilityDelegate = object : View.AccessibilityDelegate() {
             override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
@@ -480,5 +467,47 @@ class MainActivity : Activity() {
 
     private companion object {
         const val OFFICIAL_PEBBLE_APP = "coredevices.coreapp"
+    }
+}
+
+/** The shutter from the app icon, 10x10 pixels: a ring, and a disc inside it when [disc] is set. */
+private class ShutterDrawable(private val pixel: Int, private val ring: Int, private val disc: Int?) : Drawable() {
+    private val paint = Paint()
+
+    override fun draw(canvas: Canvas) {
+        for ((y, row) in PIXELS.withIndex()) {
+            for ((x, c) in row.withIndex()) {
+                paint.color = when (c) {
+                    'r' -> ring
+                    'd' -> disc ?: continue
+                    else -> continue
+                }
+                val left = (bounds.left + x * pixel).toFloat()
+                val top = (bounds.top + y * pixel).toFloat()
+                canvas.drawRect(left, top, left + pixel, top + pixel, paint)
+            }
+        }
+    }
+
+    override fun getIntrinsicWidth() = pixel * 10
+    override fun getIntrinsicHeight() = pixel * 10
+    override fun setAlpha(alpha: Int) {}
+    override fun setColorFilter(colorFilter: ColorFilter?) {}
+    @Deprecated("Deprecated in Java")
+    override fun getOpacity() = PixelFormat.TRANSLUCENT
+
+    private companion object {
+        val PIXELS = listOf(
+            "..rrrrrr..",
+            ".rr....rr.",
+            "rr.dddd.rr",
+            "r.dddddd.r",
+            "r.dddddd.r",
+            "r.dddddd.r",
+            "r.dddddd.r",
+            "rr.dddd.rr",
+            ".rr....rr.",
+            "..rrrrrr..",
+        )
     }
 }
