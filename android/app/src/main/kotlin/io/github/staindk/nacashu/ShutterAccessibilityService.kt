@@ -33,11 +33,13 @@ class ShutterAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         instance = this
+        onStateChanged?.invoke()
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
         removeOverlay()
         instance = null
+        onStateChanged?.invoke()
         return super.onUnbind(intent)
     }
 
@@ -335,6 +337,9 @@ class ShutterAccessibilityService : AccessibilityService() {
             ),
         )
         private val SHUTTER_LABELS = listOf("take photo", "shutter", "take picture", "capture")
+
+        /** Called on the main thread when the service turns on or off. Set by the open screen. */
+        var onStateChanged: (() -> Unit)? = null
 
         @Volatile
         var instance: ShutterAccessibilityService? = null

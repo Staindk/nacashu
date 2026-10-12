@@ -166,6 +166,17 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        // The service can also turn on or off while this screen is open, e.g. its auto-off.
+        ShutterAccessibilityService.onStateChanged = ::updateStatus
+        updateStatus()
+    }
+
+    override fun onPause() {
+        ShutterAccessibilityService.onStateChanged = null
+        super.onPause()
+    }
+
+    private fun updateStatus() {
         val pebbleApp = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()
         val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
         val learned = Settings.learnedShutter(this)
@@ -204,7 +215,7 @@ class MainActivity : Activity() {
             .setTitle("Camera app")
             .setAdapter(rows) { _, which ->
                 Settings.setCameraPackage(this, cameras[which])
-                onResume()
+                updateStatus()
             }
             .show()
     }
