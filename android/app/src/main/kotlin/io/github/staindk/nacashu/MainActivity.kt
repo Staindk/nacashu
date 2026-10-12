@@ -8,7 +8,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
 import android.os.Handler
@@ -21,8 +21,10 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -236,9 +238,10 @@ class MainActivity : Activity() {
     /**
      * An on/off switch, label on the left and switch on the right like Android's settings. Kept
      * black and white like the rest of the app: when on, the track is filled with the text colour
-     * and the knob takes the background colour; when off, the track is a grey outline.
+     * and the knob takes the background colour; when off, the track is a grey outline. Drawn on a
+     * plain CheckBox because Android's Switch stretches custom knobs to its own size.
      */
-    private fun toggle(label: String?, checked: Boolean, onChange: (Boolean) -> Unit) = Switch(this).apply {
+    private fun toggle(label: String?, checked: Boolean, onChange: (Boolean) -> Unit) = CheckBox(this).apply {
         text = label
         textSize = 16f
         setTextColor(themeColor(android.R.attr.textColorPrimary))
@@ -250,30 +253,39 @@ class MainActivity : Activity() {
         val fg = themeColor(android.R.attr.textColorPrimary)?.defaultColor ?: Color.WHITE
         val bg = themeColor(android.R.attr.colorBackground)?.defaultColor ?: Color.BLACK
         val grey = 0xFF9E9E9E.toInt()
-        fun knob(color: Int) = InsetDrawable(
+        val w = (40 * dp).toInt()
+        val h = (22 * dp).toInt()
+        val knob = (12 * dp).toInt()
+        val gap = (h - knob) / 2
+        fun pill(on: Boolean) = LayerDrawable(arrayOf(
+            GradientDrawable().apply {
+                cornerRadius = h / 2f
+                setColor(if (on) fg else Color.TRANSPARENT)
+                setStroke((2 * dp).toInt(), if (on) fg else grey)
+                setSize(w, h)
+            },
             GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(color)
-                setSize((16 * dp).toInt(), (16 * dp).toInt())
+                setColor(if (on) bg else grey)
             },
-            (4 * dp).toInt(),
-        )
-        fun track(fill: Int, stroke: Int) = GradientDrawable().apply {
-            cornerRadius = 12 * dp
-            setColor(fill)
-            setStroke((2 * dp).toInt(), stroke)
-            setSize((48 * dp).toInt(), (24 * dp).toInt())
+        )).apply {
+            setLayerSize(1, knob, knob)
+            setLayerGravity(1, Gravity.CENTER_VERTICAL or (if (on) Gravity.END else Gravity.START))
+            setLayerInsetRelative(1, gap, 0, gap, 0)
         }
-        val on = intArrayOf(android.R.attr.state_checked)
-        thumbDrawable = StateListDrawable().apply {
-            addState(on, knob(bg))
-            addState(intArrayOf(), knob(grey))
+        buttonDrawable = null
+        setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, StateListDrawable().apply {
+            addState(intArrayOf(android.R.attr.state_checked), pill(true))
+            addState(intArrayOf(), pill(false))
+        }, null)
+        compoundDrawablePadding = (16 * dp).toInt()
+        // TalkBack calls it a switch, not a checkbox.
+        accessibilityDelegate = object : View.AccessibilityDelegate() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = Switch::class.java.name
+            }
         }
-        trackDrawable = StateListDrawable().apply {
-            addState(on, track(fg, fg))
-            addState(intArrayOf(), track(Color.TRANSPARENT, grey))
-        }
-        switchMinWidth = (48 * dp).toInt()
         isChecked = checked
         setOnCheckedChangeListener { _, value -> onChange(value) }
     }
