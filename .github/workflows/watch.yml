@@ -46,12 +46,13 @@ jobs:
           Xvfb :99 &
           mkdir shots
           # The watchapp shows the time, so pin it to 10:09 to keep screenshots the same between runs.
-          # pebble-tool sends the host's time to the emulator every time it connects, so the commands
-          # after install run under faketime. The clock still ticks from 10:09, so sleeps work.
+          # pebble-tool sends the host's time to the emulator every time it connects, and the app
+          # reads the clock when it opens, so every pebble command runs under faketime, including
+          # install (which also starts QEMU). The clock still ticks from 10:09, so sleeps work.
           pin() { TZ=UTC faketime -f '@2026-01-01 10:09:00' pebble "$@"; }
           for platform in emery flint gabbro; do
             start=$SECONDS
-            pebble install --emulator $platform watch/build/*.pbw
+            pin install --emulator $platform watch/build/*.pbw
             sleep 2
             pin screenshot --emulator $platform --no-open shots/$platform-1-ready.png
             pin emu-button --emulator $platform click select
