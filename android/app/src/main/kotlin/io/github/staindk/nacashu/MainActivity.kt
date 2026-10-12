@@ -56,17 +56,27 @@ class MainActivity : Activity() {
         // "Nacashu / Native Camera Shutter / for Pebble" in the watchapp's pixel font, drawn by
         // watch/tools/make_name_images.py. Pebble's trademark rules allow the word "Pebble" in
         // "for Pebble", but not its logo.
-        // Wrap the drawable's own size: full width would centre it, unlike the rest of the screen.
-        // The Help switch sits at the far right of the same row.
+        // One row: the app icon, the name, and the Help switch at the far right. The name takes the
+        // space left over and shrinks on narrow screens, kept to the left like the rest of the screen.
         val headerRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        headerRow.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.logo)
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                .apply { marginEnd = pad / 2 },
+        )
         headerRow.addView(
             ImageView(this).apply {
                 setImageResource(R.drawable.header)
                 contentDescription = "Nacashu, Native Camera Shutter, for Pebble"
+                adjustViewBounds = true
+                scaleType = ImageView.ScaleType.FIT_START
+                maxHeight = drawable.intrinsicHeight // Shrink when short of room, never grow.
             },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = pad / 2 },
         )
-        headerRow.addView(View(this), LinearLayout.LayoutParams(0, 0, 1f))
         headerRow.addView(Switch(this).apply {
             text = "Help"
             textSize = 16f
