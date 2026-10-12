@@ -23,7 +23,7 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 
 ## 3. Test the phone half without the watch
 
-1. Tap **Test: open camera, then shutter after 4s**. Your camera should open and take a photo about 4 seconds later.
+1. Tap **Test / Debug**, then **Test: open camera, then shutter after 5s**. Your camera should open and take a photo about 5 seconds later.
    - A toast with **OK** means the button was found by its label or ID.
    - **OK (tapped by position)** means it fell back to tapping a screen position. That still works, but please share a dump (step 5).
    - **Camera is not on screen** or **Shutter button not found** means please share a dump.
@@ -42,7 +42,7 @@ Try the same with the phone locked. The camera opens in secure mode, and the shu
 
 ## 5. If something fails, share a dump
 
-1. With the accessibility service on, tap **Debug: dump camera screen after 5s** and switch to your camera app.
+1. With the accessibility service on, open **Test / Debug**, tap **Debug: dump camera screen after 5s** and switch to your camera app.
 2. Come back and tap **Debug: share last dump**. Paste the text into a GitHub issue.
 
 If the watch shows "Phone app?" or nothing happens, run

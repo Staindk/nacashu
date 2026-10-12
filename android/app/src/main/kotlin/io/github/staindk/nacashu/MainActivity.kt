@@ -9,10 +9,13 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
+import android.view.View
 import android.view.ViewGroup
 import android.view.Window
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -43,14 +46,29 @@ class MainActivity : Activity() {
             setPadding(pad, pad, pad, pad)
         }
 
-        column.addView(TextView(this).apply {
-            text = "Nacashu"
-            textSize = 28f
-            setPadding(0, 0, 0, pad)
-        })
+        // "Nacashu / Native Camera Shutter / for Pebble" in the watchapp's pixel font, drawn by
+        // watch/tools/make_name_images.py. Pebble's trademark rules allow the word "Pebble" in
+        // "for Pebble", but not its logo.
+        // Wrap the drawable's own size: full width would centre it, unlike the rest of the screen.
+        column.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.header)
+                contentDescription = "Nacashu, Native Camera Shutter, for Pebble"
+            },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+        )
+        column.addView(
+            View(this).apply { setBackgroundColor(0x40808080) },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, resources.displayMetrics.density.toInt().coerceAtLeast(1))
+                .apply { setMargins(0, pad, 0, pad) },
+        )
 
         status = TextView(this).apply {
             textSize = 16f
+            // A plain TextView defaults to a dim grey; use the theme's main text colour.
+            val attrs = theme.obtainStyledAttributes(intArrayOf(android.R.attr.textColorPrimary))
+            setTextColor(attrs.getColorStateList(0))
+            attrs.recycle()
             setPadding(0, 0, 0, pad)
         }
         column.addView(status)
@@ -85,14 +103,25 @@ class MainActivity : Activity() {
             }
         })
 
-        addButton("Test: open camera") {
+        // Test and debug buttons, hidden until the user opens this section.
+        val testSection = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = View.GONE
+        }
+        addButton("Test / Debug ▸") {
+            val open = testSection.visibility != View.VISIBLE
+            testSection.visibility = if (open) View.VISIBLE else View.GONE
+            (it as Button).text = if (open) "Test / Debug ▾" else "Test / Debug ▸"
+        }
+        column.addView(testSection)
+        addButton("Test: open camera", testSection) {
             runCommand(ShutterProtocol.CMD_OPEN_CAMERA, 0)
         }
-        addButton("Test: open camera, then shutter after 4s") {
+        addButton("Test: open camera, then shutter after 5s", testSection) {
             runCommand(ShutterProtocol.CMD_OPEN_CAMERA, 0)
-            runCommand(ShutterProtocol.CMD_SHUTTER, 4000)
+            runCommand(ShutterProtocol.CMD_SHUTTER, 5000)
         }
-        addButton("Debug: dump camera screen after 5s") {
+        addButton("Debug: dump camera screen after 5s", testSection) {
             toast("Switch to the camera now")
             handler.postDelayed({
                 val service = ShutterAccessibilityService.instance
@@ -104,7 +133,7 @@ class MainActivity : Activity() {
                 }
             }, 5000)
         }
-        addButton("Debug: share last dump") { shareDump() }
+        addButton("Debug: share last dump", testSection) { shareDump() }
 
         setContentView(ScrollView(this).apply {
             addView(column)
@@ -147,13 +176,29 @@ class MainActivity : Activity() {
             .map { it.activityInfo.packageName }
             .distinct()
         if (cameras.isEmpty()) return toast("No camera apps found")
+        val iconSize = (32 * resources.displayMetrics.density).toInt()
+        // The dialog's own list row, with each app's icon in front of its name.
+        val rows = object : ArrayAdapter<String>(this, android.R.layout.select_dialog_item, cameras.map(::appLabel)) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View =
+                (super.getView(position, convertView, parent) as TextView).apply {
+                    val icon = appIcon(cameras[position])?.apply { setBounds(0, 0, iconSize, iconSize) }
+                    setCompoundDrawablesRelative(icon, null, null, null)
+                    compoundDrawablePadding = iconSize / 2
+                }
+        }
         AlertDialog.Builder(this)
             .setTitle("Camera app")
-            .setItems(cameras.map(::appLabel).toTypedArray()) { _, which ->
+            .setAdapter(rows) { _, which ->
                 Settings.setCameraPackage(this, cameras[which])
                 onResume()
             }
             .show()
+    }
+
+    private fun appIcon(pkg: String) = try {
+        packageManager.getApplicationIcon(pkg)
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
     }
 
     private fun appLabel(pkg: String): String = try {
@@ -175,12 +220,12 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun addButton(label: String, onClick: () -> Unit) {
+    private fun addButton(label: String, parent: LinearLayout = column, onClick: (View) -> Unit) {
         val button = Button(this).apply {
             text = label
-            setOnClickListener { onClick() }
+            setOnClickListener { onClick(it) }
         }
-        column.addView(
+        parent.addView(
             button,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
         )
