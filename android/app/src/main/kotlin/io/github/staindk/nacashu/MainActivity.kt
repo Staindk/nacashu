@@ -5,6 +5,10 @@ import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.PorterDuff
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -18,7 +22,6 @@ import android.view.ViewGroup
 import android.view.Window
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -77,16 +80,21 @@ class MainActivity : Activity() {
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = pad / 2 },
         )
-        headerRow.addView(Switch(this).apply {
+        // "Help" sits above its toggle, which takes less width than side by side.
+        val help = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+        }
+        help.addView(TextView(this).apply {
             text = "Help"
-            textSize = 16f
+            textSize = 14f
             setTextColor(themeColor(android.R.attr.textColorPrimary))
-            isChecked = Settings.helpOn(this@MainActivity)
-            setOnCheckedChangeListener { _, on ->
-                Settings.setHelpOn(this@MainActivity, on)
-                showHelp(on)
-            }
         })
+        help.addView(toggle(null, Settings.helpOn(this)) { on ->
+            Settings.setHelpOn(this, on)
+            showHelp(on)
+        })
+        headerRow.addView(help)
         column.addView(headerRow)
         column.addView(
             View(this).apply { setBackgroundColor(0x40808080) },
@@ -96,12 +104,21 @@ class MainActivity : Activity() {
 
         addAboutTopics(pad)
 
+        // The status sits on a card, which also marks where the About topics end.
         status = TextView(this).apply {
             textSize = 16f
             setTextColor(themeColor(android.R.attr.textColorPrimary))
-            setPadding(0, 0, 0, pad)
+            setPadding(pad, pad, pad, pad)
+            background = GradientDrawable().apply {
+                cornerRadius = pad * 0.75f
+                setColor(0x1F808080)
+            }
         }
-        column.addView(status)
+        column.addView(
+            status,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                .apply { bottomMargin = pad },
+        )
 
         addButton("1. Turn on accessibility service") {
             if (Settings.disclosureAccepted(this)) {
@@ -123,31 +140,19 @@ class MainActivity : Activity() {
         }
         explain(Help.STEP_SHUTTER)
 
-        column.addView(CheckBox(this).apply {
-            text = "Open camera when the watchapp starts"
-            isChecked = Settings.autoOpenCamera(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setAutoOpenCamera(this@MainActivity, checked)
-            }
+        column.addView(toggle("Open camera when the watchapp starts", Settings.autoOpenCamera(this)) { checked ->
+            Settings.setAutoOpenCamera(this, checked)
         })
         explain(Help.AUTO_OPEN)
 
-        column.addView(CheckBox(this).apply {
-            text = "Take photo when quick launching Nacashu on Pebble"
-            isChecked = Settings.snapOnQuickLaunch(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setSnapOnQuickLaunch(this@MainActivity, checked)
-            }
+        column.addView(toggle("Take photo when quick launching Nacashu on Pebble", Settings.snapOnQuickLaunch(this)) { checked ->
+            Settings.setSnapOnQuickLaunch(this, checked)
         })
         explain(Help.QUICK_LAUNCH)
 
-        column.addView(CheckBox(this).apply {
-            text = "Lefty: button labels on the left of the watch screen"
-            isChecked = Settings.lefty(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setLefty(this@MainActivity, checked)
-                sendSettingsToWatch()
-            }
+        column.addView(toggle("Lefty: button labels on the left of the watch screen", Settings.lefty(this)) { checked ->
+            Settings.setLefty(this, checked)
+            sendSettingsToWatch()
         })
         explain(Help.LEFTY)
 
@@ -182,19 +187,15 @@ class MainActivity : Activity() {
             }, 5000)
         }
         addButton("Debug: share last dump", testSection) { shareDump() }
-        testSection.addView(CheckBox(this).apply {
-            text = "Turn accessibility off when I close Nacashu on my watch"
-            isChecked = Settings.accessibilityAutoOff(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setAccessibilityAutoOff(this@MainActivity, checked)
-            }
+        testSection.addView(toggle("Turn accessibility off when I close Nacashu on my watch", Settings.accessibilityAutoOff(this)) { checked ->
+            Settings.setAccessibilityAutoOff(this, checked)
         })
         testSection.addView(TextView(this).apply {
             text = "For banking apps that refuse to run while accessibility is on. To turn it back " +
                 "on, hold both volume keys for 3 seconds. Set that up once in Settings > " +
                 "Accessibility > Nacashu > Nacashu shortcut."
             textSize = 13f
-            setPadding(pad, 0, 0, pad)
+            setPadding(0, 0, 0, pad)
         })
 
         setContentView(ScrollView(this).apply {
@@ -219,6 +220,31 @@ class MainActivity : Activity() {
         val color = attrs.getColorStateList(0)
         attrs.recycle()
         return color
+    }
+
+    /**
+     * An on/off switch, label on the left and switch on the right like Android's settings. Kept
+     * black and white like the rest of the app: when on, the track is filled with the text colour
+     * and the knob takes the background colour; when off, both are a dim grey.
+     */
+    private fun toggle(label: String?, checked: Boolean, onChange: (Boolean) -> Unit) = Switch(this).apply {
+        text = label
+        textSize = 16f
+        setTextColor(themeColor(android.R.attr.textColorPrimary))
+        // A labelled switch spans the row, so the switches line up at the right edge.
+        if (label != null) {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+        val fg = themeColor(android.R.attr.textColorPrimary)?.defaultColor ?: Color.WHITE
+        val bg = themeColor(android.R.attr.colorBackground)?.defaultColor ?: Color.BLACK
+        thumbTintList = ColorStateList(states, intArrayOf(bg, 0xFF9E9E9E.toInt()))
+        trackTintList = ColorStateList(states, intArrayOf(fg, 0x66808080))
+        // Tints multiply by default, which would wash the colours out.
+        thumbTintMode = PorterDuff.Mode.SRC_IN
+        trackTintMode = PorterDuff.Mode.SRC_IN
+        isChecked = checked
+        setOnCheckedChangeListener { _, value -> onChange(value) }
     }
 
     private fun showHelp(on: Boolean) {
@@ -247,6 +273,7 @@ class MainActivity : Activity() {
         about.addView(TextView(this).apply {
             text = "About Nacashu"
             textSize = 18f
+            setTypeface(typeface, Typeface.BOLD)
             setTextColor(themeColor(android.R.attr.textColorPrimary))
         })
         for ((title, html) in Help.TOPICS) {

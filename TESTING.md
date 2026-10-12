@@ -33,20 +33,20 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 
 ## 4. Test with the watch
 
-1. Open **Nacashu** on the watch. The camera should open on the phone (untick **Open camera when the watchapp starts** to stop that). The watch shows the time beside the shutter.
+1. Open **Nacashu** on the watch. The camera should open on the phone (turn off **Open camera when the watchapp starts** to stop that). The watch shows the time beside the shutter.
 2. The first time, the Pebble app may ask you to allow Nacashu (PebbleKit). Allow it.
 3. Press **SELECT** to take a photo. The watch shows "Snap...", then "Done", and vibrates once.
 4. Press **UP** to start a countdown, then a photo. Press UP again to cancel ("Cancelled").
 5. Hold **UP** to change the delay (1, 3, 5, 10, 30 s). The highlight moves along the row, the watch shows "Timer set", and the choice is kept next time.
 6. Press **DOWN** to bring the camera back to the front.
-7. Lefty mode: turn on **Settings > Display > Orientation > Left-Handed** on the watch, tick **Lefty** in the phone app, then open Nacashu on the watch. The labels move to the left, next to the buttons. Toggling Lefty while Nacashu is open on the watch should move them straight away.
-8. Quick Launch: on the watch, set Nacashu as a Quick Launch app in **Settings > Quick Launch**. Tick **Take photo when quick launching Nacashu on Pebble** in the phone app, go back to the watchface and hold that button. The camera should open and take a photo, and the watch shows "Done". With the box unticked, the same hold just opens Nacashu.
+7. Lefty mode: turn on **Settings > Display > Orientation > Left-Handed** on the watch, turn on **Lefty** in the phone app, then open Nacashu on the watch. The labels move to the left, next to the buttons. Toggling Lefty while Nacashu is open on the watch should move them straight away.
+8. Quick Launch: on the watch, set Nacashu as a Quick Launch app in **Settings > Quick Launch**. Turn on **Take photo when quick launching Nacashu on Pebble** in the phone app, go back to the watchface and hold that button. The camera should open and take a photo, and the watch shows "Done". With it off, the same hold just opens Nacashu.
 9. Lock the phone and repeat steps 1 and 3. The camera opens in secure mode, and the shutter should still work.
 10. Turn Bluetooth off on the phone and press SELECT. The watch should show "No phone" and vibrate twice.
 
 ## 5. Accessibility auto-off (optional)
 
-1. In **Test / Debug**, tick **Turn accessibility off when I close Nacashu on my watch**.
+1. In **Test / Debug**, turn on **Turn accessibility off when I close Nacashu on my watch**.
 2. Set up the shortcut once: **Settings › Accessibility › Nacashu › Nacashu shortcut**, holding both volume keys.
 3. Open and close Nacashu on the watch. The status line should switch to `Accessibility service: OFF`.
 4. Hold both volume keys for 3 seconds. It should switch back to `ON`.
