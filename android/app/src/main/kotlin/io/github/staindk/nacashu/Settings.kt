@@ -30,6 +30,14 @@ object Settings {
         prefs(context).edit().putBoolean("lefty", value).apply()
     }
 
+    /** Turn the accessibility service off when the watchapp closes, for apps that refuse to run while it's on. */
+    fun accessibilityAutoOff(context: Context): Boolean =
+        prefs(context).getBoolean("accessibility_auto_off", false)
+
+    fun setAccessibilityAutoOff(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("accessibility_auto_off", value).apply()
+    }
+
     /** The learned shutter, or null if "Set shutter button" hasn't been done for this camera. */
     fun learnedShutter(context: Context): LearnedShutter? {
         val p = prefs(context)

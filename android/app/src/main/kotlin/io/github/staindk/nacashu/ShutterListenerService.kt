@@ -48,6 +48,15 @@ class ShutterListenerService : BasePebbleListenerService() {
         }
     }
 
+    override fun onAppClosed(watchappUUID: UUID, watch: WatchIdentifier) {
+        if (watchappUUID != ShutterProtocol.WATCHAPP_UUID) return
+        if (Settings.accessibilityAutoOff(this)) {
+            // Banking apps can refuse to run while any accessibility service is on. The user turns
+            // it back on with Android's accessibility shortcut (hold both volume keys).
+            ShutterAccessibilityService.instance?.disableSelf()
+        }
+    }
+
     override fun onDestroy() {
         sender.close()
         super.onDestroy()
