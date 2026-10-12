@@ -142,6 +142,20 @@ class MainActivity : Activity() {
             }, 5000)
         }
         addButton("Debug: share last dump", testSection) { shareDump() }
+        testSection.addView(CheckBox(this).apply {
+            text = "Turn accessibility off when I close Nacashu on my watch"
+            isChecked = Settings.accessibilityAutoOff(this@MainActivity)
+            setOnCheckedChangeListener { _, checked ->
+                Settings.setAccessibilityAutoOff(this@MainActivity, checked)
+            }
+        })
+        testSection.addView(TextView(this).apply {
+            text = "For banking apps that refuse to run while accessibility is on. To turn it back " +
+                "on, hold both volume keys for 3 seconds. Set that up once in Settings > " +
+                "Accessibility > Nacashu > Nacashu shortcut."
+            textSize = 13f
+            setPadding(pad, 0, 0, pad)
+        })
 
         setContentView(ScrollView(this).apply {
             addView(column)
@@ -160,6 +174,17 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        // The service can also turn on or off while this screen is open, e.g. its auto-off.
+        ShutterAccessibilityService.onStateChanged = ::updateStatus
+        updateStatus()
+    }
+
+    override fun onPause() {
+        ShutterAccessibilityService.onStateChanged = null
+        super.onPause()
+    }
+
+    private fun updateStatus() {
         val pebbleApp = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()
         val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
         val learned = Settings.learnedShutter(this)
@@ -198,7 +223,7 @@ class MainActivity : Activity() {
             .setTitle("Camera app")
             .setAdapter(rows) { _, which ->
                 Settings.setCameraPackage(this, cameras[which])
-                onResume()
+                updateStatus()
             }
             .show()
     }
