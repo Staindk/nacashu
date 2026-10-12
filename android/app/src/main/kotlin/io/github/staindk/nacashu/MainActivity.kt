@@ -6,9 +6,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.graphics.PorterDuff
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -95,11 +96,16 @@ class MainActivity : Activity() {
             showHelp(on)
         })
         headerRow.addView(help)
-        column.addView(headerRow)
-        column.addView(
+        // The header stays put above the scrolling part of the screen.
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, 0)
+        }
+        header.addView(headerRow)
+        header.addView(
             View(this).apply { setBackgroundColor(0x40808080) },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, resources.displayMetrics.density.toInt().coerceAtLeast(1))
-                .apply { setMargins(0, pad, 0, pad) },
+                .apply { topMargin = pad },
         )
 
         addAboutTopics(pad)
@@ -198,8 +204,13 @@ class MainActivity : Activity() {
             setPadding(0, 0, 0, pad)
         })
 
-        setContentView(ScrollView(this).apply {
-            addView(column)
+        setContentView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(header)
+            addView(
+                ScrollView(this@MainActivity).apply { addView(column) },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+            )
             setOnApplyWindowInsetsListener { view, insets ->
                 @Suppress("DEPRECATION") // The replacement needs API 30; this app supports 29.
                 view.setPadding(
@@ -225,7 +236,7 @@ class MainActivity : Activity() {
     /**
      * An on/off switch, label on the left and switch on the right like Android's settings. Kept
      * black and white like the rest of the app: when on, the track is filled with the text colour
-     * and the knob takes the background colour; when off, both are a dim grey.
+     * and the knob takes the background colour; when off, the track is a grey outline.
      */
     private fun toggle(label: String?, checked: Boolean, onChange: (Boolean) -> Unit) = Switch(this).apply {
         text = label
@@ -235,14 +246,34 @@ class MainActivity : Activity() {
         if (label != null) {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         }
-        val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+        val dp = resources.displayMetrics.density
         val fg = themeColor(android.R.attr.textColorPrimary)?.defaultColor ?: Color.WHITE
         val bg = themeColor(android.R.attr.colorBackground)?.defaultColor ?: Color.BLACK
-        thumbTintList = ColorStateList(states, intArrayOf(bg, 0xFF9E9E9E.toInt()))
-        trackTintList = ColorStateList(states, intArrayOf(fg, 0x66808080))
-        // Tints multiply by default, which would wash the colours out.
-        thumbTintMode = PorterDuff.Mode.SRC_IN
-        trackTintMode = PorterDuff.Mode.SRC_IN
+        val grey = 0xFF9E9E9E.toInt()
+        fun knob(color: Int) = InsetDrawable(
+            GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(color)
+                setSize((16 * dp).toInt(), (16 * dp).toInt())
+            },
+            (4 * dp).toInt(),
+        )
+        fun track(fill: Int, stroke: Int) = GradientDrawable().apply {
+            cornerRadius = 12 * dp
+            setColor(fill)
+            setStroke((2 * dp).toInt(), stroke)
+            setSize((48 * dp).toInt(), (24 * dp).toInt())
+        }
+        val on = intArrayOf(android.R.attr.state_checked)
+        thumbDrawable = StateListDrawable().apply {
+            addState(on, knob(bg))
+            addState(intArrayOf(), knob(grey))
+        }
+        trackDrawable = StateListDrawable().apply {
+            addState(on, track(fg, fg))
+            addState(intArrayOf(), track(Color.TRANSPARENT, grey))
+        }
+        switchMinWidth = (48 * dp).toInt()
         isChecked = checked
         setOnCheckedChangeListener { _, value -> onChange(value) }
     }
