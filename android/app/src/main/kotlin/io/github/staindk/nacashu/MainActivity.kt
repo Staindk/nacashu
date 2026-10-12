@@ -294,7 +294,12 @@ class MainActivity : Activity() {
     }
 
     private fun updateStatus() {
-        val pebbleApp = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()
+        // Core Devices' app is the official one; anything else (a fork, say) shows its package name.
+        val pebbleApp = when (val pkg = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()?.toString()) {
+            null -> "not found"
+            OFFICIAL_PEBBLE_APP -> "Official"
+            else -> pkg
+        }
         val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
         val saved = Settings.savedShutter(this)
         val shutter = when {
@@ -306,7 +311,7 @@ class MainActivity : Activity() {
             else -> "not set up (step 3)"
         }
         status.text = "Accessibility service: $accessibility" +
-            "\nPebble app: ${pebbleApp ?: "not found"}" +
+            "\nPebble app: $pebbleApp" +
             "\nCamera app: ${appLabel(Settings.cameraPackage(this))}" +
             "\nShutter: $shutter" +
             "\n\nOpen Nacashu on the watch, then press SELECT to take a photo."
@@ -391,5 +396,9 @@ class MainActivity : Activity() {
             .setType("text/plain")
             .putExtra(Intent.EXTRA_TEXT, text)
         startActivity(Intent.createChooser(send, "Share camera dump"))
+    }
+
+    private companion object {
+        const val OFFICIAL_PEBBLE_APP = "coredevices.coreapp"
     }
 }
