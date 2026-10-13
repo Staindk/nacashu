@@ -386,8 +386,8 @@ class MainActivity : Activity() {
             !accessibilityOn -> "Turn on accessibility below"
             pebbleApp == "not found" -> "Install the Pebble app"
             shutter == null -> "Set shutter button below"
-            Settings.autoOpenCamera(this) -> "Open Nacashu on the watch, then press SELECT to take a photo."
-            else -> "Open Nacashu on the watch, ensure your camera app is open, then press SELECT to take a photo."
+            Settings.autoOpenCamera(this) -> "Open Nacashu on the watch, then press SELECT to take a photo"
+            else -> "Open Nacashu on the watch, ensure your camera app is open, then press SELECT to take a photo"
         }
         status.removeAllViews()
         statusRow("Accessibility service", if (accessibilityOn) "ON" else "OFF")
