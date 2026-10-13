@@ -17,9 +17,9 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 
 1. Go to **Settings › Apps › Nacashu**, open the ⋮ menu, and choose **Allow restricted settings**. Android 13 and newer block accessibility for sideloaded apps until you do this.
 2. Open **Nacashu** and tap **1. Turn on accessibility service**. A "Nacashu needs accessibility access" dialog explains what the access is for. Tap **Not now**: nothing else should happen. Tap step 1 again, then **Agree**: Android's accessibility settings open. Turn on "Nacashu". From now on step 1 goes straight to those settings.
-3. Back in Nacashu, check the status lines at the top. They should say `Accessibility service: ON` and `Pebble app: Official` (the Core Devices app; any other Pebble app shows its package name).
-4. Tap **2. Choose camera app** and pick the camera you want Nacashu to use. The `Camera app:` line shows your choice.
-5. Tap **3. Set shutter button**. A dark see-through layer with "tap your camera's shutter button once" appears, and your camera opens under it. Tap where the shutter is. This doesn't take a photo. The layer says which button it set, and after 3 seconds you're back in Nacashu, whose `Shutter:` line shows it. With Pixel Camera this step is optional: the line says `built in for Pixel Camera`.
+3. Back in Nacashu, check the status card. It should show `Accessibility service` ON and `Pebble app` Official (the Core Devices app; any other Pebble app shows its package name). `Next step` changes as you go: turn on accessibility, set the shutter button, then open Nacashu on the watch (it also says to open your camera when "Open camera when the watchapp starts" is off).
+4. Tap **2. Choose camera app** and pick the camera you want Nacashu to use. The `Camera app` line shows your choice.
+5. Tap **3. Set shutter button**. A dark see-through layer with "tap your camera's shutter button once" appears, and your camera opens under it. Tap where the shutter is. This doesn't take a photo. The layer says which button it set, and after 3 seconds you're back in Nacashu, whose `Shutter` line shows it. With Pixel Camera this step is optional: the line says `built in for Pixel Camera`.
 6. Turn on **Help** at the top right. A grey explainer should appear under each step and setting, and "About Nacashu" topics under the header. Tap a topic to open it; its links should open in the browser. Close and reopen Nacashu: Help stays on. Turn it off again.
 7. Tap the layer before the camera has opened: it should ask you to wait for the camera instead of saving anything. Leave the layer alone for a minute: it should go away on its own and save nothing.
 
@@ -48,7 +48,7 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 
 1. In **Test / Debug**, turn on **Turn accessibility off when I close Nacashu on my watch**.
 2. Set up the shortcut once: **Settings › Accessibility › Nacashu › Nacashu shortcut**, holding both volume keys.
-3. Open and close Nacashu on the watch. The status line should switch to `Accessibility service: OFF`.
+3. Open and close Nacashu on the watch. The status card should switch to `Accessibility service` OFF.
 4. Hold both volume keys for 3 seconds. It should switch back to `ON`.
 
 ## 6. If something fails, share a dump

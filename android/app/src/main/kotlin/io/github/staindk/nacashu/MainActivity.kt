@@ -11,8 +11,10 @@ import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
 import android.os.Handler
@@ -33,6 +35,8 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Switch
+import android.widget.TableLayout
+import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import io.rebble.pebblekit2.client.DefaultPebbleAndroidAppPicker
@@ -49,7 +53,7 @@ class MainActivity : Activity() {
     // Cheap to create: it only binds to the Pebble app when a message is sent.
     private val sender by lazy { DefaultPebbleSender(applicationContext) }
     private lateinit var column: LinearLayout
-    private lateinit var status: TextView
+    private lateinit var status: TableLayout
     // Everything the Help switch shows and hides.
     private val helpViews = mutableListOf<View>()
 
@@ -88,21 +92,11 @@ class MainActivity : Activity() {
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = pad / 2 },
         )
-        // "Help" sits above its toggle, which takes less width than side by side.
-        val help = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-        }
-        help.addView(TextView(this).apply {
-            text = "Help"
-            textSize = 14f
-            setTextColor(themeColor(android.R.attr.textColorPrimary))
-        })
-        help.addView(toggle(null, Settings.helpOn(this)) { on ->
+        // "Help" sits above its toggle on a small card, which takes less width than side by side.
+        headerRow.addView(toggle("Help", Settings.helpOn(this), stacked = true) { on ->
             Settings.setHelpOn(this, on)
             showHelp(on)
         })
-        headerRow.addView(help)
         // The header stays put above the scrolling part of the screen.
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -118,14 +112,12 @@ class MainActivity : Activity() {
         addAboutTopics(pad)
 
         // The status sits on a card, which also marks where the About topics end.
-        status = TextView(this).apply {
-            textSize = 16f
-            setTextColor(themeColor(android.R.attr.textColorPrimary))
+        // Labels on the left, values on the right; long values wrap.
+        status = TableLayout(this).apply {
             setPadding(pad, pad, pad, pad)
-            background = GradientDrawable().apply {
-                cornerRadius = pad * 0.75f
-                setColor(0x1F808080)
-            }
+            background = card()
+            setColumnStretchable(1, true)
+            setColumnShrinkable(1, true)
         }
         column.addView(
             status,
@@ -155,6 +147,7 @@ class MainActivity : Activity() {
 
         column.addView(toggle("Open camera when the watchapp starts", Settings.autoOpenCamera(this)) { checked ->
             Settings.setAutoOpenCamera(this, checked)
+            updateStatus() // The next step depends on it.
         })
         explain(Help.AUTO_OPEN)
 
@@ -240,31 +233,43 @@ class MainActivity : Activity() {
         return color
     }
 
+    /** A rounded grey card behind a group of views. */
+    private fun card() = GradientDrawable().apply {
+        cornerRadius = 12 * resources.displayMetrics.density
+        setColor(0x1F808080)
+    }
+
     /**
-     * An on/off switch, label on the left and switch on the right like Android's settings. Drawn
-     * as the shutter from the app icon, kept black and white like the rest of the app: the full
-     * shutter when on, an empty grey ring when off.
+     * An on/off switch, label on the left and switch on the right like Android's settings, or
+     * [stacked] on a small card with the label above. Drawn as the shutter from the app icon, kept
+     * black and white like the rest of the app: the full shutter when on, an empty grey ring when off.
      */
-    private fun toggle(label: String?, checked: Boolean, onChange: (Boolean) -> Unit) = CheckBox(this).apply {
+    private fun toggle(label: String, checked: Boolean, stacked: Boolean = false, onChange: (Boolean) -> Unit) = CheckBox(this).apply {
         text = label
-        textSize = 16f
+        textSize = if (stacked) 14f else 16f
         setTextColor(themeColor(android.R.attr.textColorPrimary))
         val fg = themeColor(android.R.attr.textColorPrimary)?.defaultColor ?: Color.WHITE
         val pixel = (2.4f * resources.displayMetrics.density).roundToInt() // Whole pixels stay crisp.
-        buttonDrawable = null
-        setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, StateListDrawable().apply {
+        val shutter = StateListDrawable().apply {
             addState(intArrayOf(android.R.attr.state_checked), ShutterDrawable(pixel, fg, fg))
             addState(intArrayOf(), ShutterDrawable(pixel, 0xFF9E9E9E.toInt(), null))
-        }, null)
-        if (label != null) {
+        }
+        buttonDrawable = null
+        // The tap ripple spreads from the finger across the whole toggle, not from its middle.
+        val ripple = ColorStateList.valueOf(0x33808080)
+        if (stacked) {
+            // Label and shutter both centred in the one view, so they line up exactly.
+            setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, null, shutter)
+            gravity = Gravity.CENTER
+            compoundDrawablePadding = pixel * 2
+            setPadding(pixel * 5, pixel * 3, pixel * 5, pixel * 3)
+            background = RippleDrawable(ripple, card(), null)
+        } else {
+            setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, shutter, null)
+            compoundDrawablePadding = pixel * 6
+            background = RippleDrawable(ripple, null, ColorDrawable(Color.WHITE))
             // A labelled switch spans the row, so the switches line up at the right edge.
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            compoundDrawablePadding = pixel * 6
-        } else {
-            // Just the shutter, so it centres under whatever sits above it.
-            setPadding(pixel * 2, pixel * 2, pixel * 2, pixel * 2)
-            minWidth = 0
-            minimumWidth = 0
         }
         // TalkBack calls it a switch, not a checkbox.
         accessibilityDelegate = object : View.AccessibilityDelegate() {
@@ -367,7 +372,7 @@ class MainActivity : Activity() {
             OFFICIAL_PEBBLE_APP -> "Official"
             else -> pkg
         }
-        val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
+        val accessibilityOn = ShutterAccessibilityService.instance != null
         val saved = Settings.savedShutter(this)
         val shutter = when {
             saved != null && (saved.label != null || saved.viewId != null) ->
@@ -375,13 +380,42 @@ class MainActivity : Activity() {
             saved != null -> "set to a position on screen"
             Settings.cameraPackage(this) == Settings.PIXEL_CAMERA &&
                 packageManager.getLaunchIntentForPackage(Settings.PIXEL_CAMERA) != null -> "built in for Pixel Camera"
-            else -> "not set up (step 3)"
+            else -> null
         }
-        status.text = "Accessibility service: $accessibility" +
-            "\nPebble app: $pebbleApp" +
-            "\nCamera app: ${appLabel(Settings.cameraPackage(this))}" +
-            "\nShutter: $shutter" +
-            "\n\nOpen Nacashu on the watch, then press SELECT to take a photo."
+        val nextStep = when {
+            !accessibilityOn -> "Turn on accessibility below"
+            pebbleApp == "not found" -> "Install the Pebble app"
+            shutter == null -> "Set shutter button below"
+            Settings.autoOpenCamera(this) -> "Open Nacashu on the watch, then press SELECT to take a photo."
+            else -> "Open Nacashu on the watch, ensure your camera app is open, then press SELECT to take a photo."
+        }
+        status.removeAllViews()
+        statusRow("Accessibility service", if (accessibilityOn) "ON" else "OFF")
+        statusRow("Pebble app", pebbleApp)
+        statusRow("Camera app", appLabel(Settings.cameraPackage(this)))
+        statusRow("Shutter", shutter ?: "not set")
+        statusRow("Next step", nextStep, gap = true)
+    }
+
+    /** One line of the status card: label on the left, value on the right. */
+    private fun statusRow(label: String, value: String, gap: Boolean = false) {
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val color = themeColor(android.R.attr.textColorPrimary)
+        status.addView(TableRow(this).apply {
+            if (gap) setPadding(0, pad, 0, 0)
+            addView(TextView(this@MainActivity).apply {
+                text = label
+                textSize = 16f
+                setTextColor(color)
+                setPadding(0, 0, pad, 0)
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = value
+                textSize = 16f
+                setTextColor(color)
+                gravity = Gravity.END
+            })
+        })
     }
 
     /** Lets the user pick which installed camera app Nacashu opens and presses. */
