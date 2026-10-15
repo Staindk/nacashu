@@ -4,6 +4,7 @@
 #define KEY_CMD    1
 #define KEY_STATUS 2
 #define KEY_LEFTY  3
+#define KEY_SOUNDS 4
 
 #define CMD_SHUTTER     1
 #define CMD_OPEN_CAMERA 2
@@ -27,6 +28,9 @@ static const int TIMER_OPTIONS[] = {1, 3, 5, 10, 30};
 // buttons round, but apps can't read it, so the labels move left to stay next to the buttons.
 #define PERSIST_KEY_LEFTY 2
 
+// Sounds on or off, set in the phone app the same way as lefty. On until the phone says otherwise.
+#define PERSIST_KEY_SOUNDS 4
+
 // Status messages are wiped after this long, so an old "Done" doesn't look like a new one.
 #define STATUS_CLEAR_MS 5000
 
@@ -46,6 +50,7 @@ static AppTimer *s_status_clear_timer;
 static int s_countdown;
 static int s_timer_index = TIMER_DEFAULT_INDEX;
 static bool s_lefty;
+static bool s_sounds = true;
 static char s_status_buf[32];
 static char s_time_buf[8];
 static char s_count_buf[4];
@@ -89,6 +94,72 @@ static void prv_tick(struct tm *tick_time, TimeUnits units_changed) {
   prv_update_time();
 }
 
+// Sounds play through the speaker on watches that have one (not the Round 2). The volume is a
+// share of the watch's own speaker volume, and the watch's mute and Quiet Time silence them.
+#if defined(PBL_SPEAKER)
+#define SOUND_VOLUME 100
+
+// Countdown: a short A5 blip each second, and a higher E6 for the last two.
+static const SpeakerNote TICK_NOTES[] = {
+  {.midi_note = 81, .waveform = SpeakerWaveformSine, .duration_ms = 50},
+};
+static const SpeakerNote CLOSE_NOTES[] = {
+  {.midi_note = 88, .waveform = SpeakerWaveformSine, .duration_ms = 50},
+};
+// Error: two falling square-wave notes, E5 then A4.
+static const SpeakerNote ERROR_NOTES[] = {
+  {.midi_note = 76, .waveform = SpeakerWaveformSquare, .duration_ms = 120},
+  {.midi_note = 0, .duration_ms = 30},
+  {.midi_note = 69, .waveform = SpeakerWaveformSquare, .duration_ms = 200},
+};
+
+static void prv_play_notes(const SpeakerNote *notes, uint32_t count) {
+  if (!s_sounds) {
+    return;
+  }
+  speaker_stop();  // An app's sound can't cut off its own, so the newest one wins this way.
+  speaker_play_notes(notes, count, SOUND_VOLUME);
+}
+
+// The shutter is a recorded click (resources/sounds), played once as a sample at its own pitch.
+static void prv_play_shutter(void) {
+  if (!s_sounds) {
+    return;
+  }
+  const ResHandle handle = resource_get_handle(RESOURCE_ID_SHUTTER_SOUND);
+  const size_t size = resource_size(handle);
+  uint8_t *data = malloc(size);
+  if (!data) {
+    return;
+  }
+  resource_load(handle, data, size);
+  const SpeakerSample sample = {
+    .data = data,
+    .num_bytes = size,
+    .format = SpeakerPcmFormat_16kHz_8bit,
+    .base_midi_note = 60,
+  };
+  // 16 kHz, one byte per sample. The note just has to outlast the sample.
+  const SpeakerNote note = {.midi_note = 60, .duration_ms = size / 16 + 1};
+  const SpeakerTrack track = {.notes = &note, .num_notes = 1, .sample = &sample};
+  speaker_stop();
+  speaker_play_tracks(&track, 1, SOUND_VOLUME);
+  free(data);  // The OS copies the sample when playback starts.
+}
+
+static void prv_play_tick(bool close) {
+  prv_play_notes(close ? CLOSE_NOTES : TICK_NOTES, 1);
+}
+
+static void prv_play_error(void) {
+  prv_play_notes(ERROR_NOTES, ARRAY_LENGTH(ERROR_NOTES));
+}
+#else
+static void prv_play_shutter(void) {}
+static void prv_play_tick(bool close) {}
+static void prv_play_error(void) {}
+#endif
+
 static void prv_cancel_status_clear(void) {
   if (s_status_clear_timer) {
     app_timer_cancel(s_status_clear_timer);
@@ -113,6 +184,7 @@ static void prv_send_cmd(uint8_t cmd) {
   if (!connection_service_peek_pebble_app_connection()) {
     prv_set_status("No phone");
     vibes_double_pulse();
+    prv_play_error();
     return;
   }
   DictionaryIterator *iter;
@@ -140,6 +212,7 @@ static void prv_countdown_tick(void *context) {
   snprintf(s_count_buf, sizeof(s_count_buf), "%d", s_countdown);
   prv_show_status_text();
   vibes_short_pulse();
+  prv_play_tick(s_countdown <= 2);
   s_countdown_timer = app_timer_register(1000, prv_countdown_tick, NULL);
 }
 
@@ -274,6 +347,12 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     prv_apply_lefty();
   }
 
+  Tuple *sounds = dict_find(iter, KEY_SOUNDS);
+  if (sounds) {
+    s_sounds = sounds->value->uint8 != 0;
+    persist_write_bool(PERSIST_KEY_SOUNDS, s_sounds);
+  }
+
   Tuple *status = dict_find(iter, KEY_STATUS);
   if (!status) {
     return;
@@ -282,26 +361,32 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     case STATUS_OK:
       prv_set_status("Done");
       vibes_short_pulse();
+      prv_play_shutter();
       break;
     case STATUS_GESTURE_FALLBACK:
       prv_set_status("Done (tap)");
       vibes_short_pulse();
+      prv_play_shutter();
       break;
     case STATUS_NO_ACCESSIBILITY:
       prv_set_status("Enable service");
       vibes_double_pulse();
+      prv_play_error();
       break;
     case STATUS_CAMERA_NOT_OPEN:
       prv_set_status("Camera closed");
       vibes_double_pulse();
+      prv_play_error();
       break;
     case STATUS_SHUTTER_NOT_FOUND:
       prv_set_status("No shutter");
       vibes_double_pulse();
+      prv_play_error();
       break;
     default:
       prv_set_status("Error");
       vibes_double_pulse();
+      prv_play_error();
       break;
   }
 }
@@ -310,6 +395,7 @@ static void prv_outbox_failed(DictionaryIterator *iter, AppMessageResult reason,
   APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox failed: %d", (int)reason);
   prv_set_status("Phone app?");
   vibes_double_pulse();
+  prv_play_error();
 }
 
 static TextLayer *prv_label(Layer *parent, GRect frame, const char *text, GTextAlignment align,
@@ -374,6 +460,9 @@ static void prv_window_unload(Window *window) {
 
 static void prv_init(void) {
   s_lefty = persist_read_bool(PERSIST_KEY_LEFTY);
+  if (persist_exists(PERSIST_KEY_SOUNDS)) {
+    s_sounds = persist_read_bool(PERSIST_KEY_SOUNDS);
+  }
   const int seconds = persist_read_int(PERSIST_KEY_TIMER_SECONDS);
   for (int i = 0; i < TIMER_OPTION_COUNT; i++) {
     if (TIMER_OPTIONS[i] == seconds) {

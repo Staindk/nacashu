@@ -72,6 +72,15 @@
           "targetPlatforms": [
             "gabbro"
           ]
+        },
+        {
+          "type": "raw",
+          "name": "SHUTTER_SOUND",
+          "file": "sounds/shutter.raw",
+          "targetPlatforms": [
+            "emery",
+            "flint"
+          ]
         }
       ]
     },
