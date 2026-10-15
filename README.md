@@ -11,11 +11,11 @@ Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu
 
 Hold **UP** to cycle the timer through 1, 3, 5, 10 and 30 seconds. The watch shows all of them in a row, with the chosen one on a white pill.
 
-For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then tick **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring in https://github.com/Staindk/nacashu/issues/6).
+For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then turn on **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring in https://github.com/Staindk/nacashu/issues/6).
 
-To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and tick **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo.
+To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and turn on **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo.
 
-Status: early proof of concept. It works on a Pixel with a Pebble Time 2, including from the lock screen.
+Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including from the lock screen. Other camera apps work after a one-time **Set shutter button**. Not on the Play Store yet; for now, install the files from a CI run (see [TESTING.md](TESTING.md)).
 
 | Pebble Time 2 (emery) | Core 2 Duo (flint) | Pebble Round 2 (gabbro) |
 |:---:|:---:|:---:|
@@ -41,6 +41,8 @@ The companion app asks for accessibility access, so it's kept small enough to re
 - Its only dependency is the official [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2) library, and it has no internet permission.
 - It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Set shutter button** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot. The layer disappears a few seconds after that one tap, or after a minute.
 - The setup screen uses plain Android views, so there's no UI library to read through.
+- Before it opens Android's accessibility settings, the app explains what that access is used for and asks you to agree. See also [PRIVACY.md](PRIVACY.md).
+- The **Help** switch next to the app's name shows a short explainer under each setting, plus a few About topics. All the copy lives in `Help.kt`.
 
 ## Layout
 

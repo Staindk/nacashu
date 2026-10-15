@@ -4,20 +4,25 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS
+import android.text.Html
+import android.text.method.LinkMovementMethod
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.TableLayout
+import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import io.rebble.pebblekit2.client.DefaultPebbleAndroidAppPicker
@@ -33,7 +38,9 @@ class MainActivity : Activity() {
     // Cheap to create: it only binds to the Pebble app when a message is sent.
     private val sender by lazy { DefaultPebbleSender(applicationContext) }
     private lateinit var column: LinearLayout
-    private lateinit var status: TextView
+    private lateinit var status: TableLayout
+    // Everything the Help switch shows and hides.
+    private val helpViews = mutableListOf<View>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -49,67 +56,96 @@ class MainActivity : Activity() {
         // "Nacashu / Native Camera Shutter / for Pebble" in the watchapp's pixel font, drawn by
         // watch/tools/make_name_images.py. Pebble's trademark rules allow the word "Pebble" in
         // "for Pebble", but not its logo.
-        // Wrap the drawable's own size: full width would centre it, unlike the rest of the screen.
-        column.addView(
+        // One row: the app icon, the name, and the Help switch at the far right. The name takes the
+        // space left over and shrinks on narrow screens, kept to the left like the rest of the screen.
+        val headerRow = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        headerRow.addView(
+            ImageView(this).apply {
+                setImageResource(R.drawable.logo)
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                .apply { marginEnd = pad / 2 },
+        )
+        headerRow.addView(
             ImageView(this).apply {
                 setImageResource(R.drawable.header)
                 contentDescription = "Nacashu, Native Camera Shutter, for Pebble"
+                adjustViewBounds = true
+                scaleType = ImageView.ScaleType.FIT_START
+                maxHeight = drawable.intrinsicHeight // Shrink when short of room, never grow.
             },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = pad / 2 },
         )
-        column.addView(
+        // "Help" sits above its toggle on a small card, which takes less width than side by side.
+        headerRow.addView(ShutterToggle(this, "Help", Settings.helpOn(this), stacked = true) { on ->
+            Settings.setHelpOn(this, on)
+            showHelp(on)
+        })
+        // The header stays put above the scrolling part of the screen.
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, 0)
+        }
+        header.addView(headerRow)
+        header.addView(
             View(this).apply { setBackgroundColor(0x40808080) },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, resources.displayMetrics.density.toInt().coerceAtLeast(1))
-                .apply { setMargins(0, pad, 0, pad) },
+                .apply { topMargin = pad },
         )
 
-        status = TextView(this).apply {
-            textSize = 16f
-            // A plain TextView defaults to a dim grey; use the theme's main text colour.
-            val attrs = theme.obtainStyledAttributes(intArrayOf(android.R.attr.textColorPrimary))
-            setTextColor(attrs.getColorStateList(0))
-            attrs.recycle()
-            setPadding(0, 0, 0, pad)
+        addAboutTopics(pad)
+
+        // The status sits on a card, which also marks where the About topics end.
+        // Labels on the left, values on the right; long values wrap.
+        status = TableLayout(this).apply {
+            setPadding(pad, pad, pad, pad)
+            background = card()
+            setColumnStretchable(1, true)
+            setColumnShrinkable(1, true)
         }
-        column.addView(status)
+        column.addView(
+            status,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                .apply { bottomMargin = pad },
+        )
 
         addButton("1. Turn on accessibility service") {
-            startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
+            if (Settings.disclosureAccepted(this)) {
+                startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
+            } else {
+                showDisclosure()
+            }
         }
+        explain(Help.STEP_ACCESSIBILITY)
         addButton("2. Choose camera app") { chooseCamera() }
+        explain(Help.STEP_CAMERA)
         addButton("3. Set shutter button") {
             val service = ShutterAccessibilityService.instance
             if (service == null) {
                 toast("Do step 1 first")
             } else {
-                service.startLearning()
+                service.startShutterSetup()
             }
         }
+        explain(Help.STEP_SHUTTER)
 
-        column.addView(CheckBox(this).apply {
-            text = "Open camera when the watchapp starts"
-            isChecked = Settings.autoOpenCamera(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setAutoOpenCamera(this@MainActivity, checked)
-            }
+        column.addView(ShutterToggle(this, "Open camera when the watchapp starts", Settings.autoOpenCamera(this)) { checked ->
+            Settings.setAutoOpenCamera(this, checked)
+            updateStatus() // The next step depends on it.
         })
+        explain(Help.AUTO_OPEN)
 
-        column.addView(CheckBox(this).apply {
-            text = "Take photo when quick launching Nacashu on Pebble"
-            isChecked = Settings.snapOnQuickLaunch(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setSnapOnQuickLaunch(this@MainActivity, checked)
-            }
+        column.addView(ShutterToggle(this, "Take photo when quick launching Nacashu on Pebble", Settings.snapOnQuickLaunch(this)) { checked ->
+            Settings.setSnapOnQuickLaunch(this, checked)
         })
+        explain(Help.QUICK_LAUNCH)
 
-        column.addView(CheckBox(this).apply {
-            text = "Lefty: button labels on the left of the watch screen"
-            isChecked = Settings.lefty(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setLefty(this@MainActivity, checked)
-                sendSettingsToWatch()
-            }
+        column.addView(ShutterToggle(this, "Lefty: button labels on the left of the watch screen", Settings.lefty(this)) { checked ->
+            Settings.setLefty(this, checked)
+            sendSettingsToWatch()
         })
+        explain(Help.LEFTY)
 
         // Test and debug buttons, hidden until the user opens this section.
         val testSection = LinearLayout(this).apply {
@@ -121,6 +157,7 @@ class MainActivity : Activity() {
             testSection.visibility = if (open) View.VISIBLE else View.GONE
             (it as Button).text = if (open) "Test / Debug ▾" else "Test / Debug ▸"
         }
+        explain(Help.TEST_DEBUG)
         column.addView(testSection)
         addButton("Test: open camera", testSection) {
             runCommand(ShutterProtocol.CMD_OPEN_CAMERA, 0)
@@ -136,29 +173,29 @@ class MainActivity : Activity() {
                 if (service == null) {
                     toast("Accessibility service is off")
                 } else {
-                    service.dumpCameraUi()
-                    toast("Camera screen dumped")
+                    toast(if (service.dumpCameraUi()) "Camera screen dumped" else "Camera wasn't on screen")
                 }
             }, 5000)
         }
         addButton("Debug: share last dump", testSection) { shareDump() }
-        testSection.addView(CheckBox(this).apply {
-            text = "Turn accessibility off when I close Nacashu on my watch"
-            isChecked = Settings.accessibilityAutoOff(this@MainActivity)
-            setOnCheckedChangeListener { _, checked ->
-                Settings.setAccessibilityAutoOff(this@MainActivity, checked)
-            }
+        testSection.addView(ShutterToggle(this, "Turn accessibility off when I close Nacashu on my watch", Settings.accessibilityAutoOff(this)) { checked ->
+            Settings.setAccessibilityAutoOff(this, checked)
         })
         testSection.addView(TextView(this).apply {
             text = "For banking apps that refuse to run while accessibility is on. To turn it back " +
                 "on, hold both volume keys for 3 seconds. Set that up once in Settings > " +
                 "Accessibility > Nacashu > Nacashu shortcut."
             textSize = 13f
-            setPadding(pad, 0, 0, pad)
+            setPadding(0, 0, 0, pad)
         })
 
-        setContentView(ScrollView(this).apply {
-            addView(column)
+        setContentView(LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(header)
+            addView(
+                ScrollView(this@MainActivity).apply { addView(column) },
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f),
+            )
             setOnApplyWindowInsetsListener { view, insets ->
                 @Suppress("DEPRECATION") // The replacement needs API 30; this app supports 29.
                 view.setPadding(
@@ -170,6 +207,78 @@ class MainActivity : Activity() {
                 insets
             }
         })
+        showHelp(Settings.helpOn(this))
+    }
+
+    private fun showHelp(on: Boolean) {
+        for (view in helpViews) view.visibility = if (on) View.VISIBLE else View.GONE
+    }
+
+    /** A grey explainer line under the setting just added, shown when Help is on. */
+    private fun explain(text: String) {
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val view = TextView(this).apply {
+            this.text = text
+            textSize = 13f
+            setTextColor(themeColor(android.R.attr.textColorSecondary))
+            setPadding(pad / 4, 0, 0, pad / 2)
+        }
+        column.addView(view)
+        helpViews += view
+    }
+
+    /** "About Nacashu": one collapsed line per topic, tap to open. Shown when Help is on. */
+    private fun addAboutTopics(pad: Int) {
+        val about = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 0, 0, pad)
+        }
+        about.addView(TextView(this).apply {
+            text = "About Nacashu"
+            textSize = 18f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(themeColor(android.R.attr.textColorPrimary))
+        })
+        for ((title, html) in Help.TOPICS) {
+            val body = TextView(this).apply {
+                text = Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
+                movementMethod = LinkMovementMethod.getInstance()
+                textSize = 14f
+                setTextColor(themeColor(android.R.attr.textColorSecondary))
+                setPadding(pad / 2, 0, 0, pad / 2)
+                visibility = View.GONE
+            }
+            about.addView(TextView(this).apply {
+                text = "$title ▸"
+                textSize = 16f
+                setTextColor(themeColor(android.R.attr.textColorPrimary))
+                setPadding(0, pad / 2, 0, pad / 2)
+                setOnClickListener {
+                    val open = body.visibility != View.VISIBLE
+                    body.visibility = if (open) View.VISIBLE else View.GONE
+                    text = if (open) "$title ▾" else "$title ▸"
+                }
+            })
+            about.addView(body)
+        }
+        column.addView(about)
+        helpViews += about
+    }
+
+    /**
+     * Google Play's prominent disclosure: says what accessibility access is for before Android's
+     * settings open. "Not now" leaves everything as it was, so step 1 shows this again next time.
+     */
+    private fun showDisclosure() {
+        AlertDialog.Builder(this)
+            .setTitle(Help.DISCLOSURE_TITLE)
+            .setMessage(Html.fromHtml(Help.DISCLOSURE, Html.FROM_HTML_MODE_LEGACY))
+            .setNegativeButton("Not now", null)
+            .setPositiveButton("Agree") { _, _ ->
+                Settings.setDisclosureAccepted(this)
+                startActivity(Intent(ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .show()
     }
 
     override fun onResume() {
@@ -185,22 +294,56 @@ class MainActivity : Activity() {
     }
 
     private fun updateStatus() {
-        val pebbleApp = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()
-        val accessibility = if (ShutterAccessibilityService.instance != null) "ON" else "OFF (step 1)"
-        val learned = Settings.learnedShutter(this)
+        // Core Devices' app is the official one; anything else (a fork, say) shows its package name.
+        val pebbleApp = when (val pkg = DefaultPebbleAndroidAppPicker.getInstance(this).getAllEligibleApps().firstOrNull()?.toString()) {
+            null -> "not found"
+            OFFICIAL_PEBBLE_APP -> "Official"
+            else -> pkg
+        }
+        val accessibilityOn = ShutterAccessibilityService.instance != null
+        val saved = Settings.savedShutter(this)
         val shutter = when {
-            learned != null && (learned.label != null || learned.viewId != null) ->
-                "set to \"${learned.label ?: "no label"}\" (ID: ${learned.viewId ?: "none"})"
-            learned != null -> "set to a position on screen"
+            saved != null && (saved.label != null || saved.viewId != null) ->
+                "set to \"${saved.label ?: "no label"}\" (ID: ${saved.viewId ?: "none"})"
+            saved != null -> "set to a position on screen"
             Settings.cameraPackage(this) == Settings.PIXEL_CAMERA &&
                 packageManager.getLaunchIntentForPackage(Settings.PIXEL_CAMERA) != null -> "built in for Pixel Camera"
-            else -> "not set up (step 3)"
+            else -> null
         }
-        status.text = "Accessibility service: $accessibility" +
-            "\nPebble app: ${pebbleApp ?: "not found"}" +
-            "\nCamera app: ${appLabel(Settings.cameraPackage(this))}" +
-            "\nShutter: $shutter" +
-            "\n\nOpen Nacashu on the watch, then press SELECT to take a photo."
+        val nextStep = when {
+            !accessibilityOn -> "Turn on accessibility below"
+            pebbleApp == "not found" -> "Install the Pebble app"
+            shutter == null -> "Set shutter button below"
+            Settings.autoOpenCamera(this) -> "Open Nacashu on the watch, then press SELECT to take a photo"
+            else -> "Open Nacashu on the watch, ensure your camera app is open, then press SELECT to take a photo"
+        }
+        status.removeAllViews()
+        statusRow("Accessibility service", if (accessibilityOn) "ON" else "OFF")
+        statusRow("Pebble app", pebbleApp)
+        statusRow("Camera app", appLabel(Settings.cameraPackage(this)))
+        statusRow("Shutter", shutter ?: "not set")
+        statusRow("Next step", nextStep, gap = true)
+    }
+
+    /** One line of the status card: label on the left, value on the right. */
+    private fun statusRow(label: String, value: String, gap: Boolean = false) {
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        val color = themeColor(android.R.attr.textColorPrimary)
+        status.addView(TableRow(this).apply {
+            if (gap) setPadding(0, pad, 0, 0)
+            addView(TextView(this@MainActivity).apply {
+                text = label
+                textSize = 16f
+                setTextColor(color)
+                setPadding(0, 0, pad, 0)
+            })
+            addView(TextView(this@MainActivity).apply {
+                text = value
+                textSize = 16f
+                setTextColor(color)
+                gravity = Gravity.END
+            })
+        })
     }
 
     /** Lets the user pick which installed camera app Nacashu opens and presses. */
@@ -282,5 +425,9 @@ class MainActivity : Activity() {
             .setType("text/plain")
             .putExtra(Intent.EXTRA_TEXT, text)
         startActivity(Intent.createChooser(send, "Share camera dump"))
+    }
+
+    private companion object {
+        const val OFFICIAL_PEBBLE_APP = "coredevices.coreapp"
     }
 }

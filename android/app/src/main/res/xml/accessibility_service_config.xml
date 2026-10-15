@@ -1,4 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    What Nacashu's accessibility service may do, and why:
+    - accessibilityEventTypes: a single type, since one is required; the service ignores events.
+    - canRetrieveWindowContent + flagRetrieveInteractiveWindows: read the camera app's screen to
+      find its shutter, even while the "Set shutter button" layer sits on top of it.
+    - flagReportViewIds: match the shutter by its view ID, which doesn't change with the language.
+    - flagIncludeNotImportantViews: still find buttons a camera marks "not important for
+      accessibility".
+    - canPerformGestures: tap the shutter's position when the camera ignores a click.
+-->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
