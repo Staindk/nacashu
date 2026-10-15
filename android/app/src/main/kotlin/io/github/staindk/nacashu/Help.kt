@@ -24,7 +24,7 @@ object Help {
             "<br><br><b>What Nacashu reads:</b> the buttons and labels on your camera app's screen, only " +
             "to find the shutter. During the \"Set shutter button\" step, Nacashu also notes where you tap." +
             "<br><br><b>What Nacashu does:</b> opens your camera app, then clicks or taps its shutter button." +
-            "<br><br><b>What Nacashu keeps:</b> the shutter button's name and position, on this phone " +
+            "<br><br><b>What Nacashu stores:</b> the shutter button's name and position, on this phone " +
             "only. Nacashu has no internet access and collects or shares nothing." +
             "<br><br>You can turn off Nacashu's accessibility access any time in Android's accessibility settings."
 
