@@ -1,0 +1,1 @@
+First Play Store release: watch shutter, timer, open camera, Quick Launch photo, Set shutter button for other camera apps, and in-app help.

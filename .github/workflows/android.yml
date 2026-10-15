@@ -36,3 +36,16 @@ jobs:
         with:
           name: nacashu-android
           path: android/app/build/outputs/apk/debug/*.apk
+      # The release bundle is what goes to Google Play. It's only built on main and manual runs,
+      # and only with the signing key, because Play rejects a bundle signed with a debug key.
+      - name: Build release bundle for Google Play
+        if: github.event_name != 'pull_request' && env.NACASHU_KEYSTORE != ''
+        working-directory: android
+        env:
+          NACASHU_KEYSTORE_PASSWORD: ${{ secrets.NACASHU_KEYSTORE_PASSWORD }}
+        run: ./gradlew bundleRelease
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request' && env.NACASHU_KEYSTORE != ''
+        with:
+          name: nacashu-android-release
+          path: android/app/build/outputs/bundle/release/*.aab
