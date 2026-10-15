@@ -4,18 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
-import android.graphics.Canvas
-import android.graphics.Color
-import android.graphics.ColorFilter
-import android.graphics.Paint
-import android.graphics.PixelFormat
 import android.graphics.Typeface
-import android.graphics.drawable.ColorDrawable
-import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
-import android.graphics.drawable.RippleDrawable
-import android.graphics.drawable.StateListDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -27,21 +16,17 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
-import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.Switch
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import io.rebble.pebblekit2.client.DefaultPebbleAndroidAppPicker
 import io.rebble.pebblekit2.client.DefaultPebbleSender
-import kotlin.math.roundToInt
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -93,7 +78,7 @@ class MainActivity : Activity() {
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = pad / 2 },
         )
         // "Help" sits above its toggle on a small card, which takes less width than side by side.
-        headerRow.addView(toggle("Help", Settings.helpOn(this), stacked = true) { on ->
+        headerRow.addView(ShutterToggle(this, "Help", Settings.helpOn(this), stacked = true) { on ->
             Settings.setHelpOn(this, on)
             showHelp(on)
         })
@@ -145,18 +130,18 @@ class MainActivity : Activity() {
         }
         explain(Help.STEP_SHUTTER)
 
-        column.addView(toggle("Open camera when the watchapp starts", Settings.autoOpenCamera(this)) { checked ->
+        column.addView(ShutterToggle(this, "Open camera when the watchapp starts", Settings.autoOpenCamera(this)) { checked ->
             Settings.setAutoOpenCamera(this, checked)
             updateStatus() // The next step depends on it.
         })
         explain(Help.AUTO_OPEN)
 
-        column.addView(toggle("Take photo when quick launching Nacashu on Pebble", Settings.snapOnQuickLaunch(this)) { checked ->
+        column.addView(ShutterToggle(this, "Take photo when quick launching Nacashu on Pebble", Settings.snapOnQuickLaunch(this)) { checked ->
             Settings.setSnapOnQuickLaunch(this, checked)
         })
         explain(Help.QUICK_LAUNCH)
 
-        column.addView(toggle("Lefty: button labels on the left of the watch screen", Settings.lefty(this)) { checked ->
+        column.addView(ShutterToggle(this, "Lefty: button labels on the left of the watch screen", Settings.lefty(this)) { checked ->
             Settings.setLefty(this, checked)
             sendSettingsToWatch()
         })
@@ -193,7 +178,7 @@ class MainActivity : Activity() {
             }, 5000)
         }
         addButton("Debug: share last dump", testSection) { shareDump() }
-        testSection.addView(toggle("Turn accessibility off when I close Nacashu on my watch", Settings.accessibilityAutoOff(this)) { checked ->
+        testSection.addView(ShutterToggle(this, "Turn accessibility off when I close Nacashu on my watch", Settings.accessibilityAutoOff(this)) { checked ->
             Settings.setAccessibilityAutoOff(this, checked)
         })
         testSection.addView(TextView(this).apply {
@@ -223,63 +208,6 @@ class MainActivity : Activity() {
             }
         })
         showHelp(Settings.helpOn(this))
-    }
-
-    /** A text colour from the theme. Plain TextViews otherwise default to a dim grey. */
-    private fun themeColor(attr: Int): ColorStateList? {
-        val attrs = theme.obtainStyledAttributes(intArrayOf(attr))
-        val color = attrs.getColorStateList(0)
-        attrs.recycle()
-        return color
-    }
-
-    /** A rounded grey card behind a group of views. */
-    private fun card() = GradientDrawable().apply {
-        cornerRadius = 12 * resources.displayMetrics.density
-        setColor(0x1F808080)
-    }
-
-    /**
-     * An on/off switch, label on the left and switch on the right like Android's settings, or
-     * [stacked] on a small card with the label above. Drawn as the shutter from the app icon, kept
-     * black and white like the rest of the app: the full shutter when on, an empty grey ring when off.
-     */
-    private fun toggle(label: String, checked: Boolean, stacked: Boolean = false, onChange: (Boolean) -> Unit) = CheckBox(this).apply {
-        text = label
-        textSize = if (stacked) 14f else 16f
-        setTextColor(themeColor(android.R.attr.textColorPrimary))
-        val fg = themeColor(android.R.attr.textColorPrimary)?.defaultColor ?: Color.WHITE
-        val pixel = (2.4f * resources.displayMetrics.density).roundToInt() // Whole pixels stay crisp.
-        val shutter = StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_checked), ShutterDrawable(pixel, fg, fg))
-            addState(intArrayOf(), ShutterDrawable(pixel, 0xFF9E9E9E.toInt(), null))
-        }
-        buttonDrawable = null
-        // The tap ripple spreads from the finger across the whole toggle, not from its middle.
-        val ripple = ColorStateList.valueOf(0x33808080)
-        if (stacked) {
-            // Label and shutter both centred in the one view, so they line up exactly.
-            setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, null, shutter)
-            gravity = Gravity.CENTER
-            compoundDrawablePadding = pixel * 2
-            setPadding(pixel * 5, pixel * 3, pixel * 5, pixel * 3)
-            background = RippleDrawable(ripple, card(), null)
-        } else {
-            setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, shutter, null)
-            compoundDrawablePadding = pixel * 6
-            background = RippleDrawable(ripple, null, ColorDrawable(Color.WHITE))
-            // A labelled switch spans the row, so the switches line up at the right edge.
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-        }
-        // TalkBack calls it a switch, not a checkbox.
-        accessibilityDelegate = object : View.AccessibilityDelegate() {
-            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfo) {
-                super.onInitializeAccessibilityNodeInfo(host, info)
-                info.className = Switch::class.java.name
-            }
-        }
-        isChecked = checked
-        setOnCheckedChangeListener { _, value -> onChange(value) }
     }
 
     private fun showHelp(on: Boolean) {
@@ -501,47 +429,5 @@ class MainActivity : Activity() {
 
     private companion object {
         const val OFFICIAL_PEBBLE_APP = "coredevices.coreapp"
-    }
-}
-
-/** The shutter from the app icon, 10x10 pixels: a ring, and a disc inside it when [disc] is set. */
-private class ShutterDrawable(private val pixel: Int, private val ring: Int, private val disc: Int?) : Drawable() {
-    private val paint = Paint()
-
-    override fun draw(canvas: Canvas) {
-        for ((y, row) in PIXELS.withIndex()) {
-            for ((x, c) in row.withIndex()) {
-                paint.color = when (c) {
-                    'r' -> ring
-                    'd' -> disc ?: continue
-                    else -> continue
-                }
-                val left = (bounds.left + x * pixel).toFloat()
-                val top = (bounds.top + y * pixel).toFloat()
-                canvas.drawRect(left, top, left + pixel, top + pixel, paint)
-            }
-        }
-    }
-
-    override fun getIntrinsicWidth() = pixel * 10
-    override fun getIntrinsicHeight() = pixel * 10
-    override fun setAlpha(alpha: Int) {}
-    override fun setColorFilter(colorFilter: ColorFilter?) {}
-    @Deprecated("Deprecated in Java")
-    override fun getOpacity() = PixelFormat.TRANSLUCENT
-
-    private companion object {
-        val PIXELS = listOf(
-            "..rrrrrr..",
-            ".rr....rr.",
-            "rr.dddd.rr",
-            "r.dddddd.r",
-            "r.dddddd.r",
-            "r.dddddd.r",
-            "r.dddddd.r",
-            "rr.dddd.rr",
-            ".rr....rr.",
-            "..rrrrrr..",
-        )
     }
 }
