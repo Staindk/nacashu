@@ -11,7 +11,7 @@ Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu
 
 Hold **UP** to cycle the timer through 1, 3, 5, 10 and 30 seconds. The watch shows all of them in a row, with the chosen one on a white pill.
 
-On watches with a speaker (Pebble Time 2 and Core 2 Duo), the timer ticks each second and ticks higher for the last two, a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn them off with **Sounds on the watch** in the phone app. The shutter click is Android's own camera sound (AOSP, Apache 2.0; see `watch/resources/sounds/NOTICE`).
+On watches with a speaker (Pebble Time 2 and Core 2 Duo), the timer ticks each second and ticks higher for the last two, a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn them off with **Sounds on the watch** in the phone app. All of them are made in code: the ticks and buzz are notes in `main.c`, and the shutter click comes from `watch/tools/make_shutter_sound.py`.
 
 For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then turn on **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring in https://github.com/Staindk/nacashu/issues/6).
 

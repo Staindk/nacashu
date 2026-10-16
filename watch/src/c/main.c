@@ -121,7 +121,7 @@ static void prv_play_notes(const SpeakerNote *notes, uint32_t count) {
   speaker_play_notes(notes, count, SOUND_VOLUME);
 }
 
-// The shutter is a recorded click (resources/sounds), played once as a sample at its own pitch.
+// The shutter is a short PCM click made by tools/make_shutter_sound.py, played once at its own pitch.
 static void prv_play_shutter(void) {
   if (!s_sounds) {
     return;
