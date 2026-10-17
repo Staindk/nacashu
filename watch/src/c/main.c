@@ -222,7 +222,9 @@ static void prv_countdown_tick(void *context) {
   snprintf(s_count_buf, sizeof(s_count_buf), "%d", s_countdown);
   prv_show_status_text();
   vibes_short_pulse();
-  prv_play_tick(s_countdown <= 2);
+  if (s_countdown <= 10) {  // A 30 second timer only ticks for the last 10.
+    prv_play_tick(s_countdown <= 2);
+  }
   s_countdown_timer = app_timer_register(1000, prv_countdown_tick, NULL);
 }
 
