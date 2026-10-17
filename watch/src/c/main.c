@@ -51,6 +51,8 @@ static int s_countdown;
 static int s_timer_index = TIMER_DEFAULT_INDEX;
 static bool s_lefty;
 static bool s_sounds = true;
+// The last command sent, so a "Done" for Open camera doesn't play the shutter.
+static uint8_t s_last_cmd;
 static char s_status_buf[32];
 static char s_time_buf[8];
 static char s_count_buf[4];
@@ -160,6 +162,13 @@ static void prv_play_tick(bool close) {}
 static void prv_play_error(void) {}
 #endif
 
+// Quick Launch only answers when the phone took a photo.
+static void prv_play_shutter_if_photo(void) {
+  if (s_last_cmd == CMD_SHUTTER || s_last_cmd == CMD_QUICK_LAUNCH) {
+    prv_play_shutter();
+  }
+}
+
 static void prv_cancel_status_clear(void) {
   if (s_status_clear_timer) {
     app_timer_cancel(s_status_clear_timer);
@@ -194,6 +203,7 @@ static void prv_send_cmd(uint8_t cmd) {
     return;
   }
   dict_write_uint8(iter, KEY_CMD, cmd);
+  s_last_cmd = cmd;
   app_message_outbox_send();
   prv_set_status(cmd == CMD_SHUTTER ? "Snap..." : "Opening...");
 }
@@ -361,12 +371,12 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     case STATUS_OK:
       prv_set_status("Done");
       vibes_short_pulse();
-      prv_play_shutter();
+      prv_play_shutter_if_photo();
       break;
     case STATUS_GESTURE_FALLBACK:
       prv_set_status("Done (tap)");
       vibes_short_pulse();
-      prv_play_shutter();
+      prv_play_shutter_if_photo();
       break;
     case STATUS_NO_ACCESSIBILITY:
       prv_set_status("Enable service");
@@ -479,6 +489,7 @@ static void prv_init(void) {
   if (launch_reason() == APP_LAUNCH_QUICK_LAUNCH && connection_service_peek_pebble_app_connection() &&
       app_message_outbox_begin(&iter) == APP_MSG_OK) {
     dict_write_uint8(iter, KEY_CMD, CMD_QUICK_LAUNCH);
+    s_last_cmd = CMD_QUICK_LAUNCH;
     app_message_outbox_send();
   }
 
