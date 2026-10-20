@@ -28,7 +28,7 @@ static const int TIMER_OPTIONS[] = {1, 3, 5, 10, 30};
 // buttons round, but apps can't read it, so the labels move left to stay next to the buttons.
 #define PERSIST_KEY_LEFTY 2
 
-// Sounds on or off, set in the phone app the same way as lefty. On until the phone says otherwise.
+// Sounds on or off, set in the phone app the same way as lefty. Defaults to on.
 #define PERSIST_KEY_SOUNDS 4
 
 // Status messages are wiped after this long, so an old "Done" doesn't look like a new one.
