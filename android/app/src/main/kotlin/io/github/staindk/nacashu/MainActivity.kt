@@ -153,7 +153,7 @@ class MainActivity : Activity() {
         })
         explain(Help.SOUNDS)
 
-        column.addView(ShutterToggle(this, "Remember timer and photo count on the watch", Settings.rememberChoices(this)) { checked ->
+        column.addView(ShutterToggle(this, "Remember watchapp settings", Settings.rememberChoices(this)) { checked ->
             Settings.setRememberChoices(this, checked)
             sendSettingsToWatch()
         })

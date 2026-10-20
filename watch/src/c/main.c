@@ -421,9 +421,9 @@ static int prv_find_option(const int *options, int count, int value) {
   return 0;
 }
 
-// SELECT acts as soon as it's pressed, not when it's let go, so the watch doesn't wobble while
-// the button comes back up. Pressed again while a countdown or run of photos is going, it stops.
-static void prv_select_down(ClickRecognizerRef recognizer, void *context) {
+// Pressed again while a countdown or run of photos is going, SELECT stops it. It has no hold
+// action, so it fires as soon as it's pressed.
+static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
   if (prv_stop()) {
     prv_set_status("Stopped");
     return;
@@ -517,7 +517,7 @@ static void prv_apply_lefty(void) {
 }
 
 static void prv_click_config(void *context) {
-  window_raw_click_subscribe(BUTTON_ID_SELECT, prv_select_down, NULL, NULL);
+  window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);
   window_long_click_subscribe(BUTTON_ID_UP, 0, prv_up_long_click, NULL);
   window_single_click_subscribe(BUTTON_ID_DOWN, prv_down_click);
