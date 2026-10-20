@@ -44,7 +44,7 @@ The companion app asks for accessibility access, so it's kept small enough to re
 - It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Set shutter button** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot. The layer disappears a few seconds after that one tap, or after a minute.
 - The setup screen uses plain Android views, so there's no UI library to read through.
 - Before it opens Android's accessibility settings, the app explains what that access is used for and asks you to agree. See also [PRIVACY.md](PRIVACY.md).
-- The **Help** switch next to the app's name shows a short explainer under each setting, plus a few About topics. All the copy lives in `Help.kt`. The "Using the watchapp" topic draws a Pebble Time 2 around `docs/emery-1-ready.png`, which the build copies in, so it always shows the latest screenshot.
+- The **Help** switch next to the app's name shows a short explainer under each setting, plus a few About topics. All the copy lives in `Help.kt`. The "Using the watchapp" topic puts `docs/emery-1-ready.png` in the window of the app icon's pixel watch (`docs/icon.png`). The build copies both in, so it always shows the latest ones.
 
 ## Layout
 
