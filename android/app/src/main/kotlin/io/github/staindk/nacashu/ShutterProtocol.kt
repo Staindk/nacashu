@@ -15,6 +15,8 @@ object ShutterProtocol {
     const val KEY_LEFTY = 3u
     /** Phone to watch: 1 plays sounds on the watch's speaker, 0 keeps it quiet. */
     const val KEY_SOUNDS = 4u
+    /** Phone to watch: 1 keeps the timer and photo count for next time, 0 starts at 0 s and 1 photo. */
+    const val KEY_REMEMBER = 5u
 
     const val CMD_SHUTTER = 1
     const val CMD_OPEN_CAMERA = 2
@@ -41,6 +43,7 @@ object ShutterProtocol {
         mapOf(
             KEY_LEFTY to PebbleDictionaryItem.UInt8(if (Settings.lefty(context)) 1u else 0u),
             KEY_SOUNDS to PebbleDictionaryItem.UInt8(if (Settings.watchSounds(context)) 1u else 0u),
+            KEY_REMEMBER to PebbleDictionaryItem.UInt8(if (Settings.rememberChoices(context)) 1u else 0u),
         )
 
     /** Runs a watch command and reports its status. Must be called on the main thread. */

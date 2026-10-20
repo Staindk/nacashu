@@ -35,14 +35,18 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 
 1. Open **Nacashu** on the watch. The camera should open on the phone (turn off **Open camera when the watchapp starts** to stop that). The watch shows the time beside the shutter.
 2. The first time, the Pebble app may ask you to allow Nacashu (PebbleKit). Allow it.
-3. Press **SELECT** to take a photo. The watch shows "Snap...", then "Done", and vibrates once.
-4. Press **UP** to start a countdown, then a photo. Press UP again to cancel ("Cancelled").
-5. Hold **UP** to change the delay (1, 3, 5, 10, 30 s). The highlight moves along the row, the watch shows "Timer set", and the choice is kept next time.
-6. Press **DOWN** to bring the camera back to the front.
-7. Lefty mode: turn on **Settings > Display > Orientation > Left-Handed** on the watch, turn on **Lefty** in the phone app, then open Nacashu on the watch. The labels move to the left, next to the buttons. Toggling Lefty while Nacashu is open on the watch should move them straight away.
-8. Quick Launch: on the watch, set Nacashu as a Quick Launch app in **Settings > Quick Launch**. Turn on **Take photo when quick launching Nacashu on Pebble** in the phone app, go back to the watchface and hold that button. The camera should open and take a photo, and the watch shows "Done". With it off, the same hold just opens Nacashu.
-9. Lock the phone and repeat steps 1 and 3. The camera opens in secure mode, and the shutter should still work.
-10. Turn Bluetooth off on the phone and press SELECT. The watch should show "No phone" and vibrate twice.
+3. Press **SELECT** to take a photo. It should fire as you press, not when you let go. The watch shows "Snap...", then "Done", and vibrates once.
+4. Press **UP** to change the timer (0, 3, 5, 10, 30 s). The highlight moves along the top row. Pick 3 and press SELECT: a countdown, then a photo. Press SELECT (or UP or DOWN) during the countdown to stop it ("Stopped"); no photo is taken and the timer stays at 3.
+5. Press **DOWN** to change the photo count (1, 5, 20, ∞). Pick 5 and press SELECT: the watch shows 1/5 to 5/5 a second apart, vibrates and clicks for each, then shows "Done". Check the camera roll has 5 photos.
+6. Pick ∞ and press SELECT: it counts up until you press any button ("Stopped"). With a timer set, the countdown runs once before the first photo.
+7. Close the camera on the phone during a run of 20: the watch should show "Camera closed" and stop.
+8. Hold **UP**: the watch shows "Reset", and the rows go back to 0 and 1.
+9. Hold **DOWN** to bring the camera back to the front.
+10. Set the timer to 5 and photos to 20, close Nacashu on the watch and open it again: both are kept. Turn off **Remember timer and photo count on the watch** in the phone app, set them again, then close and reopen: they're back at 0 and 1.
+11. Lefty mode: turn on **Settings > Display > Orientation > Left-Handed** on the watch, turn on **Lefty** in the phone app, then open Nacashu on the watch. The labels move to the left, next to the buttons. Toggling Lefty while Nacashu is open on the watch should move them straight away.
+12. Quick Launch: on the watch, set Nacashu as a Quick Launch app in **Settings > Quick Launch**. Turn on **Take photo when quick launching Nacashu on Pebble** in the phone app, go back to the watchface and hold that button. The camera should open and take a photo, and the watch shows "Done". With it off, the same hold just opens Nacashu.
+13. Lock the phone and repeat steps 1 and 3. The camera opens in secure mode, and the shutter should still work.
+14. Turn Bluetooth off on the phone and press SELECT. The watch should show "No phone" and vibrate twice.
 
 ## 5. Accessibility auto-off (optional)
 
@@ -64,10 +68,13 @@ If the watch shows "Phone app?" or nothing happens, run
 | Watch text | Meaning |
 |------------|---------|
 | Snap... / Opening... | The command was sent to the phone. |
-| Done | The shutter was clicked. |
+| 2/5, or just 7 for ∞ | The photo number in a run of photos. |
+| Done | The shutter was clicked (for a run, the last one). |
+| Stopped | A countdown or run of photos was stopped by a button press. |
+| Reset | Hold UP: no timer and one photo again. |
 | Done (tap) | The shutter was tapped by screen position. |
 | Enable service | The accessibility service is off. |
-| Camera closed | The camera app isn't on screen. Press DOWN. |
+| Camera closed | The camera app isn't on screen. Hold DOWN. |
 | No shutter | The shutter wasn't found and the tap failed. |
 | No phone | The watch isn't connected to the phone. |
 | Phone app? | The message didn't reach the companion app. |

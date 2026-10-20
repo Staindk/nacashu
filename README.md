@@ -4,12 +4,12 @@ Nacashu turns a Pebble watch into a remote shutter for your phone's **own** came
 
 ```
 Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu (Android)
-  SELECT = snap                                      │ accessibility service
-  UP     = timer                                     ▼
-  DOWN   = open camera ◀── status (vibrate) ──  clicks the camera's shutter button
+  SELECT = snap (press again to stop)               │ accessibility service
+  UP     = timer        hold UP   = reset            ▼
+  DOWN   = photos       hold DOWN = open camera ◀── status (vibrate) ──  clicks the camera's shutter button
 ```
 
-Hold **UP** to cycle the timer through 1, 3, 5, 10 and 30 seconds. The watch shows all of them in a row, with the chosen one on a white pill.
+Press **UP** to cycle the timer through 0, 3, 5, 10 and 30 seconds, and **DOWN** to choose how many photos SELECT takes: 1, 5, 20 or ∞, one second apart. The watch shows each row of choices with the chosen one on a white pill, and counts the photos beside the shutter. Press any button to stop a countdown or a run of photos (∞ keeps going until you do). Hold **UP** to go back to no timer and one photo, and hold **DOWN** to bring the camera to the front. The watch keeps your choices for next time unless you turn off **Remember timer and photo count on the watch** in the phone app.
 
 On watches with a speaker (Pebble Time 2 and Core 2 Duo), the timer ticks each second for its last 10 seconds, higher for the last two, a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn them off with **Sounds on the watch** in the phone app. All of them are made in code: the ticks and buzz are notes in `main.c`, and the shutter click comes from `watch/tools/make_shutter_sound.py`.
 
