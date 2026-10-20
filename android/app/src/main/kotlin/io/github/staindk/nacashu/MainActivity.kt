@@ -251,30 +251,47 @@ class MainActivity : Activity() {
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(themeColor(android.R.attr.textColorPrimary))
         })
-        for ((title, html) in Help.TOPICS) {
-            val body = TextView(this).apply {
-                text = Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
-                movementMethod = LinkMovementMethod.getInstance()
-                textSize = 14f
-                setTextColor(themeColor(android.R.attr.textColorSecondary))
-                setPadding(pad / 2, 0, 0, pad / 2)
-                visibility = View.GONE
+        for ((index, topic) in Help.TOPICS.withIndex()) {
+            val (title, html) = topic
+            addTopic(about, title, helpText(html, pad))
+            // Right after "What Nacashu does": the watch's buttons, on a picture of the watch.
+            if (index == 0) {
+                addTopic(about, Help.WATCHAPP_TITLE, LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(WatchDiagram(this@MainActivity))
+                    addView(helpText(Help.WATCHAPP, pad))
+                })
             }
-            about.addView(TextView(this).apply {
-                text = "$title ▸"
-                textSize = 16f
-                setTextColor(themeColor(android.R.attr.textColorPrimary))
-                setPadding(0, pad / 2, 0, pad / 2)
-                setOnClickListener {
-                    val open = body.visibility != View.VISIBLE
-                    body.visibility = if (open) View.VISIBLE else View.GONE
-                    text = if (open) "$title ▾" else "$title ▸"
-                }
-            })
-            about.addView(body)
         }
         column.addView(about)
         helpViews += about
+    }
+
+    /** One collapsed About topic: its title, which opens and closes [body] when tapped. */
+    private fun addTopic(about: LinearLayout, title: String, body: View) {
+        val pad = (16 * resources.displayMetrics.density).toInt()
+        body.visibility = View.GONE
+        about.addView(TextView(this).apply {
+            text = "$title ▸"
+            textSize = 16f
+            setTextColor(themeColor(android.R.attr.textColorPrimary))
+            setPadding(0, pad / 2, 0, pad / 2)
+            setOnClickListener {
+                val open = body.visibility != View.VISIBLE
+                body.visibility = if (open) View.VISIBLE else View.GONE
+                text = if (open) "$title ▾" else "$title ▸"
+            }
+        })
+        about.addView(body)
+    }
+
+    /** An About topic's body, from HTML with working links. */
+    private fun helpText(html: String, pad: Int) = TextView(this).apply {
+        text = Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY)
+        movementMethod = LinkMovementMethod.getInstance()
+        textSize = 14f
+        setTextColor(themeColor(android.R.attr.textColorSecondary))
+        setPadding(pad / 2, 0, 0, pad / 2)
     }
 
     /**
