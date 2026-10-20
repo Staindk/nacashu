@@ -67,26 +67,16 @@ object Help {
     /** The "Using the watchapp" topic, shown under WatchDiagram. Its numbers match the diagram's. */
     const val WATCHAPP_TITLE = "Using the watchapp"
     const val WATCHAPP =
-        "<b>1. UP</b> starts the timer. Press it again to cancel. Hold it to change the timer to 1, 3, 5, 10 " +
+        "The numbers match the buttons in the picture.*" +
+            "<br><br><b>1. UP</b> starts the timer. Press it again to cancel. Hold it to change the timer to 1, 3, 5, 10 " +
             "or 30 seconds; the row at the top shows the choices, with the current one highlighted." +
             "<br><b>2. SELECT</b> takes a photo straight away." +
             "<br><b>3. DOWN</b> opens the camera on your phone without taking a photo." +
             "<br><b>4. BACK</b> closes Nacashu." +
             "<br><br>The middle of the screen shows the time. During a timer it counts down instead, and after a " +
-            "button press it shows what happened for a few seconds:" +
-            "<br>• <b>Snap...</b> or <b>Opening...</b>: sent, waiting for your phone." +
-            "<br>• <b>Done</b>: the shutter was pressed. <b>Done (tap)</b> means Nacashu tapped where you set the " +
-            "shutter button instead." +
-            "<br>• <b>Timer set</b> or <b>Cancelled</b>: after holding or pressing UP." +
-            "<br>• <b>No phone</b>: the watch isn't connected to your phone." +
-            "<br>• <b>Phone app?</b>: the Pebble app on your phone didn't take the message." +
-            "<br>• <b>Busy</b>: the last press is still on its way. Try again in a moment." +
-            "<br>• <b>Enable service</b>: turn on accessibility, step 1 below." +
-            "<br>• <b>Camera closed</b>: the camera wasn't on screen. Press DOWN to open it first, or turn " +
-            "on \"Open camera when the watchapp starts\"." +
-            "<br>• <b>No shutter</b>: Nacashu couldn't find the shutter. Try \"Set shutter button\", step 3 below." +
-            "<br><br>With PebbleOS's Left-Handed mode, the watch is upside down, so the buttons and the labels " +
-            "swap sides. Turn on Lefty below to match."
+            "button press it shows what happened for a few seconds, such as \"Done\" or what went wrong." +
+            "<br><br><small>* In PebbleOS's Left-Handed mode the watch is turned around, so the buttons are on the " +
+            "other side. Turn on Lefty below to move the labels with them.</small>"
 
     // Shown under each step and setting when Help is on.
     const val STEP_ACCESSIBILITY = "Lets Nacashu press your camera's shutter. Opens Android's accessibility " +
