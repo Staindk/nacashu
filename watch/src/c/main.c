@@ -134,19 +134,23 @@ static void prv_play_shutter(void) {
   if (!data) {
     return;
   }
-  resource_load(handle, data, size);
+  const size_t loaded = resource_load(handle, data, size);
+  if (loaded == 0) {
+    free(data);
+    return;
+  }
   const SpeakerSample sample = {
     .data = data,
-    .num_bytes = size,
+    .num_bytes = loaded,
     .format = SpeakerPcmFormat_16kHz_8bit,
     .base_midi_note = 60,
   };
   // 16 kHz, one byte per sample. The note just has to outlast the sample.
-  const SpeakerNote note = {.midi_note = 60, .duration_ms = size / 16 + 1};
+  const SpeakerNote note = {.midi_note = 60, .duration_ms = loaded / 16 + 1};
   const SpeakerTrack track = {.notes = &note, .num_notes = 1, .sample = &sample};
   speaker_stop();
   speaker_play_tracks(&track, 1, SOUND_VOLUME);
-  free(data);  // The OS copies the sample when playback starts.
+  free(data);  // The OS copies the track, note and sample data before this returns.
 }
 
 static void prv_play_tick(bool close) {
@@ -200,6 +204,7 @@ static void prv_send_cmd(uint8_t cmd) {
   AppMessageResult result = app_message_outbox_begin(&iter);
   if (result != APP_MSG_OK) {
     prv_set_status("Busy");
+    prv_play_error();  // When the timer ends here, no photo is taken.
     return;
   }
   dict_write_uint8(iter, KEY_CMD, cmd);
