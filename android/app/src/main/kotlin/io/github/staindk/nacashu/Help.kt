@@ -70,6 +70,9 @@ object Help {
     const val LEFTY = "For PebbleOS's Left-Handed mode (Settings > Display > Orientation). Moves the button " +
         "labels to the left, next to the buttons. At time of writing, there is no way to automatically " +
         "determine whether your watch OS is in lefty mode."
+    const val SOUNDS = "Plays a tick for each of the timer's last 10 seconds, a shutter click when the photo is taken, " +
+        "and a buzz when something goes wrong. Uses the watch's own speaker volume, and stays quiet when " +
+        "the watch is muted or in Quiet Time. The Pebble Round 2 has no speaker."
     const val TEST_DEBUG = "Check the phone side without your watch, and share what Nacashu sees if it " +
         "can't find the shutter."
 }

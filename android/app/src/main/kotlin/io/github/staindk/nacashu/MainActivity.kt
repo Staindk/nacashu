@@ -147,6 +147,12 @@ class MainActivity : Activity() {
         })
         explain(Help.LEFTY)
 
+        column.addView(ShutterToggle(this, "Sounds on the watch", Settings.watchSounds(this)) { checked ->
+            Settings.setWatchSounds(this, checked)
+            sendSettingsToWatch()
+        })
+        explain(Help.SOUNDS)
+
         // Test and debug buttons, hidden until the user opens this section.
         val testSection = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

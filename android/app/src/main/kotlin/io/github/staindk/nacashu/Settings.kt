@@ -38,6 +38,14 @@ object Settings {
         prefs(context).edit().putBoolean("lefty", value).apply()
     }
 
+    /** Countdown, shutter and error sounds on the watch's speaker. */
+    fun watchSounds(context: Context): Boolean =
+        prefs(context).getBoolean("watch_sounds", true)
+
+    fun setWatchSounds(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("watch_sounds", value).apply()
+    }
+
     /** Turn the accessibility service off when the watchapp closes, for apps that refuse to run while it's on. */
     fun accessibilityAutoOff(context: Context): Boolean =
         prefs(context).getBoolean("accessibility_auto_off", false)
