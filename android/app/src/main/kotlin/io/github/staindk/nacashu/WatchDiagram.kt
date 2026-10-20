@@ -11,11 +11,11 @@ import android.graphics.RectF
 import android.view.View
 
 /**
- * The app icon's pixel watch, scaled up, with the watchapp's screenshot in its window and the
- * buttons numbered to match the list under it in Help.WATCHAPP. Both pictures come from docs/
- * (icon.png and emery-1-ready.png), which the build copies in (see app/build.gradle.kts), so this
- * always shows the current icon and the screenshot CI last took. The numbers sit on the buttons,
- * not on the screen, so they stay right when the watchapp's layout changes.
+ * A chunky pixel watch shaped like the app icon's (docs/icon.png), with the watchapp's screenshot
+ * in its window and the buttons numbered to match the list under it in Help.WATCHAPP. The
+ * screenshot is docs/emery-1-ready.png, which the build copies in (see app/build.gradle.kts), so
+ * it's always the one CI last took. The numbers sit on the buttons, not on the screen, so they stay
+ * right when the watchapp's layout changes.
  */
 class WatchDiagram(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
@@ -26,96 +26,93 @@ class WatchDiagram(context: Context) : View(context) {
         isFakeBoldText = true
     }
 
-    private val shot: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.watch_screenshot)
-    // The icon without its empty side margins, so the buttons reach the edges.
-    private val watch: Bitmap = BitmapFactory.decodeResource(resources, R.drawable.watch_icon).let {
-        Bitmap.createBitmap(it, ICON_MARGIN, 0, it.width - 2 * ICON_MARGIN, it.height)
-    }
+    // The watch, drawn once at the screenshot's own pixel size, and its buttons in Help.WATCHAPP's order.
+    private val art: Bitmap
+    private val buttons = mutableListOf<Rect>()
 
-    // The buttons, found on the icon itself: the white runs down its left and right edges.
-    private val buttons: List<Rect> = buildList {
-        val right = buttonRuns(watch.width - 1).map { Rect(watch.width - BUTTON_W, it.first, watch.width, it.last + 1) }
-        val left = buttonRuns(0).map { Rect(0, it.first, BUTTON_W, it.last + 1) }
-        addAll(right) // 1 UP, 2 SELECT, 3 DOWN
-        addAll(left) // 4 BACK
-    }
-
-    // Icon pixels and screenshot pixels per watch pixel, worked out in onMeasure.
-    private var cell = 1
-    private var shotScale = 1
+    // Screen pixels per screenshot pixel, worked out in onMeasure.
+    private var scale = 1
 
     init {
+        val shot = BitmapFactory.decodeResource(resources, R.drawable.watch_screenshot)
+        // Everything but the screenshot is drawn in cells of CELL pixels, like the icon's chunky pixels.
+        // The black window leaves a gap round the screenshot, so its white edges don't run into the frame.
+        val inW = (shot.width + 2 * GAP + CELL - 1) / CELL
+        val inH = (shot.height + 2 * GAP + CELL - 1) / CELL
+        val bodyW = inW + 2 * FRAME
+        val bodyH = inH + 2 * FRAME
+        art = Bitmap.createBitmap((bodyW + 2 * BUTTON_W) * CELL, (bodyH + 2 * STRAP_H) * CELL, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(art)
+        val fill = Paint() // No anti-aliasing: hard pixel edges.
+        fun cells(x: Int, y: Int, w: Int, h: Int, color: Int): Rect {
+            val r = Rect(x * CELL, y * CELL, (x + w) * CELL, (y + h) * CELL)
+            fill.color = color
+            canvas.drawRect(r, fill)
+            return r
+        }
+
+        // As in the icon: half-width grey straps, a white body with two-step corners, a black window.
+        val strapW = bodyW / 2
+        cells(BUTTON_W + (bodyW - strapW) / 2, 0, strapW, STRAP_H, STRAP_GREY)
+        cells(BUTTON_W + (bodyW - strapW) / 2, STRAP_H + bodyH, strapW, STRAP_H, STRAP_GREY)
+        cells(BUTTON_W + 2, STRAP_H, bodyW - 4, bodyH, Color.WHITE)
+        cells(BUTTON_W + 1, STRAP_H + 1, bodyW - 2, bodyH - 2, Color.WHITE)
+        cells(BUTTON_W, STRAP_H + 2, bodyW, bodyH - 4, Color.WHITE)
+        cells(BUTTON_W + FRAME, STRAP_H + FRAME, inW, inH, Color.BLACK)
+        val shotX = (BUTTON_W + FRAME) * CELL + (inW * CELL - shot.width) / 2
+        val shotY = (STRAP_H + FRAME) * CELL + (inH * CELL - shot.height) / 2
+        canvas.drawBitmap(shot, shotX.toFloat(), shotY.toFloat(), null)
+
+        // 1 UP, 2 SELECT, 3 DOWN on the right, 4 BACK on the left, lined up with the watchapp's labels.
+        for ((left, at) in listOf(false to 0.18f, false to 0.5f, false to 0.9f, true to 0.18f)) {
+            val y = Math.round((shotY + at * shot.height) / CELL) - BUTTON_H / 2
+            buttons += cells(if (left) 0 else BUTTON_W + bodyW, y, BUTTON_W, BUTTON_H, Color.WHITE)
+        }
+        shot.recycle()
+
         contentDescription = "The Nacashu watchapp on a Pebble Time 2. Numbered buttons: 1 UP, 2 SELECT, " +
             "3 DOWN on the right, 4 BACK on the left"
     }
 
-    private fun buttonRuns(x: Int): List<IntRange> {
-        val runs = mutableListOf<IntRange>()
-        var start = -1
-        for (y in 0..watch.height) {
-            val white = y < watch.height && watch.getPixel(x, y) == Color.WHITE
-            if (white && start < 0) start = y
-            if (!white && start >= 0) {
-                runs += start until y
-                start = -1
-            }
-        }
-        return runs
-    }
-
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
+        // Don't let the watch get silly on a tablet.
         val room = minOf(width - 2 * pad(), (MAX_WATCH_DP * density).toInt())
-        // The biggest whole-pixel screenshot whose watch still fits.
-        shotScale = 1
-        while (cellFor(shotScale + 1) * watch.width <= room) shotScale++
-        cell = cellFor(shotScale)
-        setMeasuredDimension(width, watch.height * cell + 2 * pad())
+        scale = (room / art.width).coerceAtLeast(1)
+        setMeasuredDimension(width, art.height * scale + 2 * pad())
     }
-
-    /** The icon pixel size whose window fits the screenshot at [scale]. */
-    private fun cellFor(scale: Int) = maxOf(
-        (shot.width * scale + WINDOW.width() - 1) / WINDOW.width(),
-        (shot.height * scale + WINDOW.height() - 1) / WINDOW.height(),
-    )
 
     override fun onDraw(canvas: Canvas) {
         // A black card, like the app icon's background.
         paint.color = Color.BLACK
         canvas.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), 12 * density, 12 * density, paint)
 
-        val left = (width - watch.width * cell) / 2
+        val left = (width - art.width * scale) / 2
         val top = pad()
-        fun scaled(r: Rect) = Rect(left + r.left * cell, top + r.top * cell, left + r.right * cell, top + r.bottom * cell)
-
-        canvas.drawBitmap(watch, null, scaled(Rect(0, 0, watch.width, watch.height)), pixels)
-        // Empty the icon's window, then put the screenshot in the middle of it.
-        val window = scaled(WINDOW)
-        paint.color = Color.BLACK
-        canvas.drawRect(window, paint)
-        val w = shot.width * shotScale
-        val h = shot.height * shotScale
-        val x = window.centerX() - w / 2
-        val y = window.centerY() - h / 2
-        canvas.drawBitmap(shot, null, Rect(x, y, x + w, y + h), pixels)
+        canvas.drawBitmap(art, null, Rect(left, top, left + art.width * scale, top + art.height * scale), pixels)
 
         // Each button's number, on the button.
         paint.color = Color.BLACK
-        paint.textSize = cell * 1.3f
+        paint.textSize = CELL * scale * 1.3f
         for ((i, button) in buttons.withIndex()) {
-            val r = scaled(button)
-            canvas.drawText((i + 1).toString(), r.exactCenterX(), r.exactCenterY() - (paint.ascent() + paint.descent()) / 2, paint)
+            val x = left + button.exactCenterX() * scale
+            val y = top + button.exactCenterY() * scale
+            canvas.drawText((i + 1).toString(), x, y - (paint.ascent() + paint.descent()) / 2, paint)
         }
     }
 
     private fun pad() = (8 * density).toInt()
 
     private companion object {
-        // In icon pixels (docs/icon.png is 32x32): the empty columns either side of the watch, how
-        // wide the buttons are, and the black window inside the frame, once the margins are cut off.
-        const val ICON_MARGIN = 4
+        // In screenshot pixels: the size of one chunky pixel, and the black gap round the screenshot.
+        const val CELL = 12
+        const val GAP = 4
+        // In chunky pixels, matching the icon's proportions.
+        const val FRAME = 3
         const val BUTTON_W = 2
-        val WINDOW = Rect(5, 7, 19, 25)
+        const val BUTTON_H = 4
+        const val STRAP_H = 4
         const val MAX_WATCH_DP = 360
+        val STRAP_GREY = Color.rgb(0x55, 0x55, 0x55)
     }
 }

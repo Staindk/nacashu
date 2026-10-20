@@ -8,9 +8,8 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/android.yml'
-      # The Help screen shows these.
+      # The Help screen shows this screenshot.
       - 'docs/emery-1-ready.png'
-      - 'docs/icon.png'
   workflow_dispatch:
 
 jobs:
