@@ -67,7 +67,7 @@ If the watch shows "Phone app?" or nothing happens, run
 
 | Watch text | Meaning |
 |------------|---------|
-| Snap... / Opening... | The command was sent to the phone. |
+| Snap... / Opening camera | The command was sent to the phone. |
 | 2/5, or just 7 for ∞ | The photo number in a run of photos. |
 | Done | The shutter was clicked (for a run, the last one). |
 | Stopped | A countdown or run of photos was stopped by a button press. |

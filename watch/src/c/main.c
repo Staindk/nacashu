@@ -245,7 +245,7 @@ static void prv_send_cmd(uint8_t cmd) {
     prv_send_failed(result);
     return;
   }
-  prv_set_status(cmd == CMD_SHUTTER ? "Snap..." : "Opening...");
+  prv_set_status(cmd == CMD_SHUTTER ? "Snap..." : "Opening camera");
 }
 
 // Takes one photo, and books the next one a second later until the count is reached. The phone's
@@ -333,14 +333,44 @@ typedef struct {
   bool zero_is_endless;  // Draw 0 as an infinity sign.
 } Picker;
 
-#define INFINITY_W 14
+// Gothic 24's own infinity sign, which sits well beside Gothic 18's digits, and a bold copy for
+// the chosen one (Gothic 24 Bold has none). Gothic 18's own is too small next to them.
+static const char *const INFINITY[] = {
+  " XXXX   XXXX ",
+  "XX  XX XX  XX",
+  "X    XXX    X",
+  "X     X     X",
+  "X    XXX    X",
+  "XX  XX XX  XX",
+  " XXXX   XXXX ",
+};
+static const char *const INFINITY_BOLD[] = {
+  " XXXX    XXXX ",
+  "XXXXXX  XXXXXX",
+  "XX  XXXXXX  XX",
+  "XX   XXXX   XX",
+  "XX  XXXXXX  XX",
+  "XXXXXX  XXXXXX",
+  " XXXX    XXXX ",
+};
+#define INFINITY_H ((int)ARRAY_LENGTH(INFINITY))
 
-static void prv_draw_infinity(GContext *ctx, GRect box, GColor color) {
-  const GPoint c = GPoint(box.origin.x + box.size.w / 2, box.origin.y + box.size.h / 2);
+static int16_t prv_infinity_w(bool bold) {
+  return strlen(bold ? INFINITY_BOLD[0] : INFINITY[0]);
+}
+
+static void prv_draw_infinity(GContext *ctx, GRect box, GColor color, bool bold) {
+  const char *const *rows = bold ? INFINITY_BOLD : INFINITY;
+  const int16_t x0 = box.origin.x + (box.size.w - prv_infinity_w(bold)) / 2;
+  const int16_t y0 = box.origin.y + (box.size.h - INFINITY_H) / 2;
   graphics_context_set_stroke_color(ctx, color);
-  graphics_context_set_stroke_width(ctx, 2);
-  graphics_draw_circle(ctx, GPoint(c.x - 3, c.y), 3);
-  graphics_draw_circle(ctx, GPoint(c.x + 3, c.y), 3);
+  for (int y = 0; y < INFINITY_H; y++) {
+    for (int x = 0; rows[y][x]; x++) {
+      if (rows[y][x] == 'X') {
+        graphics_draw_pixel(ctx, GPoint(x0 + x, y0 + y));
+      }
+    }
+  }
 }
 
 static void prv_picker_update(Layer *layer, GContext *ctx) {
@@ -357,7 +387,7 @@ static void prv_picker_update(Layer *layer, GContext *ctx) {
     const bool chosen = i == *picker->index;
     if (picker->zero_is_endless && picker->options[i] == 0) {
       text[i][0] = '\0';
-      widths[i] = INFINITY_W;
+      widths[i] = prv_infinity_w(chosen);
     } else {
       snprintf(text[i], sizeof(text[i]), "%d", picker->options[i]);
       widths[i] = graphics_text_layout_get_content_size(
@@ -380,7 +410,7 @@ static void prv_picker_update(Layer *layer, GContext *ctx) {
       graphics_fill_rect(ctx, box, 4, GCornersAll);
     }
     if (text[i][0] == '\0') {
-      prv_draw_infinity(ctx, box, color);
+      prv_draw_infinity(ctx, box, color, chosen);
     } else {
       graphics_context_set_text_color(ctx, color);
       box.origin.y -= 3;  // Gothic has extra space above the digits.
