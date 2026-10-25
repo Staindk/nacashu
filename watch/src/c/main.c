@@ -26,7 +26,7 @@ static const int TIMER_OPTIONS[] = {0, 3, 5, 10, 30};
 // How many photos SELECT takes, cycled by pressing DOWN. 0 means no limit: it keeps going until
 // a button is pressed (or BURST_MAX photos).
 #define PERSIST_KEY_PHOTOS 5
-static const int PHOTO_OPTIONS[] = {1, 5, 20, 0};
+static const int PHOTO_OPTIONS[] = {1, 3, 5, 10, 0};
 #define PHOTO_OPTION_COUNT ((int)ARRAY_LENGTH(PHOTO_OPTIONS))
 #define BURST_MAX 999
 // The next photo is sent this long after the phone says it took the last one. Timing from the

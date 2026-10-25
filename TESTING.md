@@ -37,12 +37,12 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 2. The first time, the Pebble app may ask you to allow Nacashu (PebbleKit). Allow it.
 3. Press **SELECT** to take a photo. The watch shows "Snap...", then "Done", and vibrates once.
 4. Press **UP** to change the timer (0, 3, 5, 10, 30 s). The highlight moves along the top row. Pick 3 and press SELECT: a countdown, then a photo. Press SELECT (or UP or DOWN) during the countdown to stop it ("Stopped"); no photo is taken and the timer stays at 3.
-5. Press **DOWN** to change the photo count (1, 5, 20, ∞). Pick 5 and press SELECT: the watch shows 1/5 to 5/5 about a second apart, vibrates and clicks for each, then shows "Done". The clicks should be evenly spaced, the first one included, and never overlap. Check the camera roll has 5 photos.
+5. Press **DOWN** to change the photo count (1, 3, 5, 10, ∞). Pick 5 and press SELECT: the watch shows 1/5 to 5/5 about a second apart, vibrates and clicks for each, then shows "Done". The clicks should be evenly spaced, the first one included, and never overlap. Check the camera roll has 5 photos.
 6. Pick ∞ and press SELECT: it counts up until you press any button ("Stopped"). With a timer set, the countdown runs once before the first photo.
-7. Close the camera on the phone during a run of 20: the watch should show "Camera closed" and stop.
+7. Close the camera on the phone during a run of 10: the watch should show "Camera closed" and stop.
 8. Hold **UP**: the watch shows "Reset", and the rows go back to 0 and 1.
 9. Hold **DOWN** to bring the camera back to the front.
-10. Set the timer to 5 and photos to 20, close Nacashu on the watch and open it again: both are kept. Turn off **Remember watchapp settings** in the phone app, set them again, then close and reopen: they're back at 0 and 1.
+10. Set the timer to 5 and photos to 10, close Nacashu on the watch and open it again: both are kept. Turn off **Remember watchapp settings** in the phone app, set them again, then close and reopen: they're back at 0 and 1.
 11. Lefty mode: turn on **Settings > Display > Orientation > Left-Handed** on the watch, turn on **Lefty** in the phone app, then open Nacashu on the watch. The labels move to the left, next to the buttons. Toggling Lefty while Nacashu is open on the watch should move them straight away.
 12. Quick Launch: on the watch, set Nacashu as a Quick Launch app in **Settings > Quick Launch**. Turn on **Take photo when quick launching Nacashu on Pebble** in the phone app, go back to the watchface and hold that button. The camera should open and take a photo, and the watch shows "Done". With it off, the same hold just opens Nacashu.
 13. Lock the phone and repeat steps 1 and 3. The camera opens in secure mode, and the shutter should still work.
