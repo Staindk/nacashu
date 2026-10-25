@@ -37,7 +37,7 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 2. The first time, the Pebble app may ask you to allow Nacashu (PebbleKit). Allow it.
 3. Press **SELECT** to take a photo. The watch shows "Snap...", then "Done", and vibrates once.
 4. Press **UP** to change the timer (0, 3, 5, 10, 30 s). The highlight moves along the top row. Pick 3 and press SELECT: a countdown, then a photo. Press SELECT (or UP or DOWN) during the countdown to stop it ("Stopped"); no photo is taken and the timer stays at 3.
-5. Press **DOWN** to change the photo count (1, 5, 20, ∞). Pick 5 and press SELECT: the watch shows 1/5 to 5/5 a second apart, vibrates and clicks for each, then shows "Done". Check the camera roll has 5 photos.
+5. Press **DOWN** to change the photo count (1, 5, 20, ∞). Pick 5 and press SELECT: the watch shows 1/5 to 5/5 about a second apart, vibrates and clicks for each, then shows "Done". The clicks should be evenly spaced, the first one included, and never overlap. Check the camera roll has 5 photos.
 6. Pick ∞ and press SELECT: it counts up until you press any button ("Stopped"). With a timer set, the countdown runs once before the first photo.
 7. Close the camera on the phone during a run of 20: the watch should show "Camera closed" and stop.
 8. Hold **UP**: the watch shows "Reset", and the rows go back to 0 and 1.

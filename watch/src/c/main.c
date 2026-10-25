@@ -29,7 +29,11 @@ static const int TIMER_OPTIONS[] = {0, 3, 5, 10, 30};
 static const int PHOTO_OPTIONS[] = {1, 5, 20, 0};
 #define PHOTO_OPTION_COUNT ((int)ARRAY_LENGTH(PHOTO_OPTIONS))
 #define BURST_MAX 999
+// The next photo is sent this long after the phone says it took the last one. Timing from the
+// phone's answer, not from sending, keeps the gaps even when Bluetooth is slow to wake up.
 #define SHOT_GAP_MS 1000
+// Stop the run if the phone hasn't answered a photo by then.
+#define ANSWER_TIMEOUT_MS 5000
 // When the last photo's message hasn't left the watch yet, try again this often, this many times.
 #define BUSY_RETRY_MS 100
 #define BUSY_RETRIES 5
@@ -68,6 +72,8 @@ static int s_timer_index;
 static int s_photo_index;
 static int s_shots;
 static int s_busy_retries;
+// A photo of a run is with the phone, and the next one waits for its answer.
+static bool s_waiting;
 static bool s_lefty;
 static bool s_sounds = true;
 static bool s_remember = true;
@@ -248,8 +254,22 @@ static void prv_send_cmd(uint8_t cmd) {
   prv_set_status(cmd == CMD_SHUTTER ? "Snap..." : "Opening camera");
 }
 
-// Takes one photo, and books the next one a second later until the count is reached. The phone's
-// answer to each one comes back as a status, and an error there stops the rest.
+// Bluetooth answers faster while a countdown or run is going, at some cost to the battery.
+static void prv_fast_bluetooth(bool fast) {
+  app_comm_set_sniff_interval(fast ? SNIFF_INTERVAL_REDUCED : SNIFF_INTERVAL_NORMAL);
+}
+
+static void prv_no_answer(void *context) {
+  s_burst_timer = NULL;
+  s_waiting = false;
+  prv_fast_bluetooth(false);
+  prv_set_status("No answer");
+  vibes_double_pulse();
+  prv_play_error();
+}
+
+// Takes one photo. Until the count is reached, the phone's answer books the next one (see
+// prv_inbox_received), and an error stops the rest.
 static void prv_shot(void *context) {
   s_burst_timer = NULL;
   const SendResult result = prv_try_send(CMD_SHUTTER);
@@ -259,15 +279,15 @@ static void prv_shot(void *context) {
     return;
   }
   if (result != SEND_OK) {
+    prv_fast_bluetooth(false);
     prv_send_failed(result);
     return;
   }
-  const int gap = SHOT_GAP_MS - s_busy_retries * BUSY_RETRY_MS;
   s_busy_retries = 0;
   s_shots++;
 
   const int total = PHOTO_OPTIONS[s_photo_index];
-  char text[12];
+  char text[24];
   if (total == 1) {
     snprintf(text, sizeof(text), "Snap...");
   } else if (total == 0) {
@@ -278,13 +298,15 @@ static void prv_shot(void *context) {
   prv_set_status(text);
 
   if (s_shots < (total == 0 ? BURST_MAX : total)) {
-    s_burst_timer = app_timer_register(gap, prv_shot, NULL);
+    s_waiting = true;
+    s_burst_timer = app_timer_register(ANSWER_TIMEOUT_MS, prv_no_answer, NULL);
   }
 }
 
 static void prv_start_burst(void) {
   s_shots = 0;
   s_busy_retries = 0;
+  prv_fast_bluetooth(true);
   prv_shot(NULL);
 }
 
@@ -322,6 +344,8 @@ static bool prv_stop(void) {
     s_burst_timer = NULL;
     stopped = true;
   }
+  s_waiting = false;
+  prv_fast_bluetooth(false);
   return stopped;
 }
 
@@ -463,6 +487,7 @@ static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
     prv_start_burst();
     return;
   }
+  prv_fast_bluetooth(true);  // So it's awake by the first photo.
   s_countdown = seconds + 1;
   prv_countdown_tick(NULL);
 }
@@ -591,7 +616,12 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     case STATUS_OK:
     case STATUS_GESTURE_FALLBACK:
       // While photos are still being taken, the counter stays up instead of "Done".
-      if (!s_burst_timer) {
+      if (s_waiting) {
+        s_waiting = false;
+        app_timer_cancel(s_burst_timer);
+        s_burst_timer = app_timer_register(SHOT_GAP_MS, prv_shot, NULL);
+      } else if (!s_burst_timer) {
+        prv_fast_bluetooth(false);
         prv_set_status(status->value->uint8 == STATUS_OK ? "Done" : "Done (tap)");
       }
       vibes_short_pulse();

@@ -74,7 +74,7 @@ object Help {
         "and a buzz when something goes wrong. Uses the watch's own speaker volume, and stays quiet when " +
         "the watch is muted or in Quiet Time. The Pebble Round 2 has no speaker."
     const val REMEMBER = "On the watch, UP changes the timer and DOWN changes how many photos SELECT takes, " +
-        "one second apart. With this on, the watch keeps your choices for next time. With it off, " +
+        "about a second apart. With this on, the watch keeps your choices for next time. With it off, " +
         "Nacashu starts with no timer and one photo each time you open it."
     const val TEST_DEBUG = "Check the phone side without your watch, and share what Nacashu sees if it " +
         "can't find the shutter."
