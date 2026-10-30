@@ -95,6 +95,7 @@ static uint32_t s_prev_rtt;
 static uint32_t s_prev_ack;
 static bool s_fast_bt_allowed = true;
 static bool s_fast_bt_on;
+static AppTimer *s_fast_bt_timer;
 static char s_status_buf[32];
 static char s_time_buf[8];
 static char s_count_buf[4];
@@ -300,16 +301,42 @@ static void prv_send_cmd(uint8_t cmd) {
   prv_set_status(cmd == CMD_SHUTTER ? "Snap..." : "Opening camera");
 }
 
-// Bluetooth answers faster while a countdown or run is going, at some cost to the battery.
+// Bluetooth's faster mode, which costs some battery, is on from when Nacashu opens until it has
+// been left alone for FAST_BT_IDLE_MS. Turning it on takes a moment to settle, and until then
+// messages from the phone can take over a second, so it's switched on well before the first photo
+// rather than when SELECT is pressed.
+#define FAST_BT_IDLE_MS (5 * 60 * 1000)
+
 static void prv_fast_bluetooth(bool fast) {
   s_fast_bt_on = fast && s_fast_bt_allowed;
   app_comm_set_sniff_interval(s_fast_bt_on ? SNIFF_INTERVAL_REDUCED : SNIFF_INTERVAL_NORMAL);
 }
 
+static void prv_fast_bt_idle(void *context);
+
+static void prv_keep_fast_bluetooth(void) {
+  if (!s_fast_bt_on) {
+    prv_fast_bluetooth(true);
+  }
+  if (s_fast_bt_timer) {
+    app_timer_reschedule(s_fast_bt_timer, FAST_BT_IDLE_MS);
+  } else {
+    s_fast_bt_timer = app_timer_register(FAST_BT_IDLE_MS, prv_fast_bt_idle, NULL);
+  }
+}
+
+static void prv_fast_bt_idle(void *context) {
+  s_fast_bt_timer = NULL;
+  if (s_countdown_timer || s_burst_timer) {
+    prv_keep_fast_bluetooth();  // Still busy with a countdown or a run of photos.
+    return;
+  }
+  prv_fast_bluetooth(false);
+}
+
 static void prv_no_answer(void *context) {
   s_burst_timer = NULL;
   s_waiting = false;
-  prv_fast_bluetooth(false);
   prv_set_status("No answer");
   vibes_double_pulse();
   prv_play_error();
@@ -326,8 +353,7 @@ static void prv_shot(void *context) {
     return;
   }
   if (result != SEND_OK) {
-    prv_fast_bluetooth(false);
-    prv_send_failed(result);
+      prv_send_failed(result);
     return;
   }
   s_busy_retries = 0;
@@ -353,7 +379,7 @@ static void prv_shot(void *context) {
 static void prv_start_burst(void) {
   s_shots = 0;
   s_busy_retries = 0;
-  prv_fast_bluetooth(true);
+  prv_keep_fast_bluetooth();
   prv_shot(NULL);
 }
 
@@ -392,7 +418,6 @@ static bool prv_stop(void) {
     stopped = true;
   }
   s_waiting = false;
-  prv_fast_bluetooth(false);
   return stopped;
 }
 
@@ -525,6 +550,7 @@ static int prv_find_option(const int *options, int count, int value) {
 // Pressed again while a countdown or run of photos is going, SELECT stops it. It has no hold
 // action, so it fires as soon as it's pressed.
 static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
+  prv_keep_fast_bluetooth();
   if (prv_stop()) {
     prv_set_status("Stopped");
     return;
@@ -535,13 +561,13 @@ static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
     prv_start_burst();
     return;
   }
-  prv_fast_bluetooth(true);  // So it's awake by the first photo.
   s_countdown = seconds + 1;
   prv_countdown_tick(NULL);
 }
 
 // UP and DOWN stop whatever is going first, so a press can always stop it.
 static void prv_up_click(ClickRecognizerRef recognizer, void *context) {
+  prv_keep_fast_bluetooth();
   if (prv_stop()) {
     prv_set_status("Stopped");
     return;
@@ -552,6 +578,7 @@ static void prv_up_click(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void prv_up_long_click(ClickRecognizerRef recognizer, void *context) {
+  prv_keep_fast_bluetooth();
   prv_stop();
   s_timer_index = 0;
   s_photo_index = 0;
@@ -563,6 +590,7 @@ static void prv_up_long_click(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void prv_down_click(ClickRecognizerRef recognizer, void *context) {
+  prv_keep_fast_bluetooth();
   if (prv_stop()) {
     prv_set_status("Stopped");
     return;
@@ -573,6 +601,7 @@ static void prv_down_click(ClickRecognizerRef recognizer, void *context) {
 }
 
 static void prv_down_long_click(ClickRecognizerRef recognizer, void *context) {
+  prv_keep_fast_bluetooth();
   prv_stop();
   prv_send_cmd(CMD_OPEN_CAMERA);
 }
@@ -656,6 +685,7 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *fast_bt = dict_find(iter, KEY_FAST_BT);
   if (fast_bt) {
     s_fast_bt_allowed = fast_bt->value->uint8 != 0;
+    prv_fast_bluetooth(s_fast_bt_timer != NULL);
   }
 
   Tuple *status = dict_find(iter, KEY_STATUS);
@@ -677,8 +707,7 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
         app_timer_cancel(s_burst_timer);
         s_burst_timer = app_timer_register(SHOT_GAP_MS, prv_shot, NULL);
       } else if (!s_burst_timer) {
-        prv_fast_bluetooth(false);
-        prv_set_status(status->value->uint8 == STATUS_OK ? "Done" : "Done (tap)");
+              prv_set_status(status->value->uint8 == STATUS_OK ? "Done" : "Done (tap)");
         if (s_last_cmd == CMD_SHUTTER) {
           prv_send_run_end();
         }
@@ -825,9 +854,14 @@ static void prv_init(void) {
     .unload = prv_window_unload,
   });
   window_stack_push(s_window, true);
+  prv_keep_fast_bluetooth();
 }
 
 static void prv_deinit(void) {
+  if (s_fast_bt_timer) {
+    app_timer_cancel(s_fast_bt_timer);
+  }
+  prv_fast_bluetooth(false);
   tick_timer_service_unsubscribe();
   prv_stop();
   prv_cancel_status_clear();
