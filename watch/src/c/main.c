@@ -72,7 +72,8 @@ static int s_timer_index;
 static int s_photo_index;
 static int s_shots;
 static int s_busy_retries;
-// A photo of a run is with the phone, and the next one waits for its answer.
+// True from sending a photo in a run until the phone answers. The next photo is only sent after
+// that answer.
 static bool s_waiting;
 static bool s_lefty;
 static bool s_sounds = true;
@@ -268,8 +269,8 @@ static void prv_no_answer(void *context) {
   prv_play_error();
 }
 
-// Takes one photo. Until the count is reached, the phone's answer books the next one (see
-// prv_inbox_received), and an error stops the rest.
+// Sends one photo of a run. When the phone answers that it took it, prv_inbox_received sends the
+// next one a second later. An error answer stops the run.
 static void prv_shot(void *context) {
   s_burst_timer = NULL;
   const SendResult result = prv_try_send(CMD_SHUTTER);
