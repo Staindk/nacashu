@@ -1,4 +1,4 @@
-package io.github.staindk.nacashu
+package dk.steyn.nacashu
 
 import android.util.Log
 import io.rebble.pebblekit2.client.BasePebbleListenerService

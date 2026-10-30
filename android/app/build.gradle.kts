@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.staindk.nacashu"
+    namespace = "dk.steyn.nacashu"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "io.github.staindk.nacashu"
+        applicationId = "dk.steyn.nacashu"
         minSdk = 29
         targetSdk = 36
         versionCode = 3

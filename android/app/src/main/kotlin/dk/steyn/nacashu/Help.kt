@@ -1,4 +1,4 @@
-package io.github.staindk.nacashu
+package dk.steyn.nacashu
 
 /**
  * The app's help copy, kept in one place so it's easy to read and review. The disclosure is

@@ -27,7 +27,7 @@ Keep "Pebble" out of the app name (Pebble's trademark rules); saying the app wor
 Done once, in this order:
 
 1. **Developer account.** Sign up at [play.google.com/console](https://play.google.com/console) as a personal account (one-time US$25 fee, ID verification).
-2. **Create the app.** Name "Nacashu", free, app (not game). The package name `io.github.staindk.nacashu` is fixed once the first bundle is uploaded.
+2. **Create the app.** Name "Nacashu", free, app (not game). The package name `dk.steyn.nacashu` is fixed once the first bundle is uploaded.
 3. **App signing.** Use Play App Signing. Upload the CI key (`NACASHU_KEYSTORE_BASE64`) as the **upload key** and let Google generate the app signing key. Play builds are then signed by Google, so a CI-built APK installed by hand can't update to the Play version (or the other way round): uninstall one before installing the other.
 4. **App content** (Policy > App content):
    - Privacy policy URL: the GitHub page for `PRIVACY.md`. The repo has to be public first, or the policy hosted somewhere public.

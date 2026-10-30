@@ -89,7 +89,7 @@
         "url": "https://github.com/Staindk/nacashu",
         "apps": [
           {
-            "package": "io.github.staindk.nacashu"
+            "package": "dk.steyn.nacashu"
           }
         ]
       }
