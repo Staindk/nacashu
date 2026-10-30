@@ -190,12 +190,6 @@ class MainActivity : Activity() {
             }, 5000)
         }
         addButton("Debug: share last dump", testSection) { shareDump() }
-        // Temporary debug for issue 35: timings of the last run of photos.
-        addButton("Debug: share last run timings", testSection) { shareRunTimings() }
-        testSection.addView(ShutterToggle(this, "Debug: keep Bluetooth quick while the watchapp is in use", Settings.fastBluetooth(this)) { checked ->
-            Settings.setFastBluetooth(this, checked)
-            sendSettingsToWatch()
-        })
         testSection.addView(ShutterToggle(this, "Turn accessibility off when I close Nacashu on my watch", Settings.accessibilityAutoOff(this)) { checked ->
             Settings.setAccessibilityAutoOff(this, checked)
         })
@@ -443,15 +437,6 @@ class MainActivity : Activity() {
             .setType("text/plain")
             .putExtra(Intent.EXTRA_TEXT, text)
         startActivity(Intent.createChooser(send, "Share camera dump"))
-    }
-
-    private fun shareRunTimings() {
-        val file = RunLog.file(this)
-        if (!file.exists()) return toast("No run yet")
-        val send = Intent(Intent.ACTION_SEND)
-            .setType("text/plain")
-            .putExtra(Intent.EXTRA_TEXT, file.readText())
-        startActivity(Intent.createChooser(send, "Share run timings"))
     }
 
     private companion object {
