@@ -17,11 +17,21 @@ object ShutterProtocol {
     const val KEY_SOUNDS = 4u
     /** Phone to watch: 1 keeps the timer and photo count for next time, 0 starts at 0 s and 1 photo. */
     const val KEY_REMEMBER = 5u
+    // Temporary debug timings for issue 35; see RunLog. The watch sends these with each photo.
+    const val KEY_SEQ = 6u
+    const val KEY_T_SENT = 7u
+    const val KEY_RETRIES = 8u
+    const val KEY_PREV_RTT = 9u
+    const val KEY_PREV_ACK = 10u
+    /** Watch to phone: fast Bluetooth was on. Phone to watch: allow it. */
+    const val KEY_FAST_BT = 11u
 
     const val CMD_SHUTTER = 1
     const val CMD_OPEN_CAMERA = 2
     /** The watchapp was opened with Quick Launch. Takes a photo if the user turned that on. */
     const val CMD_QUICK_LAUNCH = 3
+    /** Debug: sent after a run with the last photo's round trip. */
+    const val CMD_RUN_END = 4
 
     const val STATUS_OK = 0
     const val STATUS_NO_ACCESSIBILITY = 1
@@ -44,6 +54,7 @@ object ShutterProtocol {
             KEY_LEFTY to PebbleDictionaryItem.UInt8(if (Settings.lefty(context)) 1u else 0u),
             KEY_SOUNDS to PebbleDictionaryItem.UInt8(if (Settings.watchSounds(context)) 1u else 0u),
             KEY_REMEMBER to PebbleDictionaryItem.UInt8(if (Settings.rememberChoices(context)) 1u else 0u),
+            KEY_FAST_BT to PebbleDictionaryItem.UInt8(if (Settings.fastBluetooth(context)) 1u else 0u),
         )
 
     /** Runs a watch command and reports its status. Must be called on the main thread. */

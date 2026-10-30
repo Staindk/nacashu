@@ -6,10 +6,18 @@
 #define KEY_LEFTY  3
 #define KEY_SOUNDS 4
 #define KEY_REMEMBER 5
+// Temporary debug timings for issue 35. Watch to phone with each photo, except KEY_FAST_BT.
+#define KEY_SEQ      6   // Photo number in the run, from 1. The phone echoes it with the status.
+#define KEY_T_SENT   7   // ms from the SELECT press to sending this photo.
+#define KEY_RETRIES  8   // Busy retries before this photo went out.
+#define KEY_PREV_RTT 9   // ms from sending the previous photo to its status arriving.
+#define KEY_PREV_ACK 10  // ms from sending the previous photo to the outbox being acked.
+#define KEY_FAST_BT  11  // Watch to phone: fast Bluetooth was on. Phone to watch: allow it.
 
 #define CMD_SHUTTER     1
 #define CMD_OPEN_CAMERA 2
 #define CMD_QUICK_LAUNCH 3
+#define CMD_RUN_END     4  // Debug: the last photo's round trip, after a run.
 
 #define STATUS_OK               0
 #define STATUS_NO_ACCESSIBILITY 1
@@ -80,6 +88,13 @@ static bool s_sounds = true;
 static bool s_remember = true;
 // The last command sent, so a "Done" for Open camera doesn't play the shutter.
 static uint8_t s_last_cmd;
+// Debug timings (issue 35), in ms from time_ms().
+static uint32_t s_press_ms;
+static uint32_t s_sent_ms;
+static uint32_t s_prev_rtt;
+static uint32_t s_prev_ack;
+static bool s_fast_bt_allowed = true;
+static bool s_fast_bt_on;
 static char s_status_buf[32];
 static char s_time_buf[8];
 static char s_count_buf[4];
@@ -220,6 +235,13 @@ static void prv_set_status(const char *text) {
   s_status_clear_timer = app_timer_register(STATUS_CLEAR_MS, prv_clear_status, NULL);
 }
 
+static uint32_t prv_now_ms(void) {
+  time_t s;
+  uint16_t ms;
+  time_ms(&s, &ms);
+  return (uint32_t)s * 1000 + ms;
+}
+
 typedef enum { SEND_OK, SEND_BUSY, SEND_NO_PHONE } SendResult;
 
 static SendResult prv_try_send(uint8_t cmd) {
@@ -231,9 +253,32 @@ static SendResult prv_try_send(uint8_t cmd) {
     return SEND_BUSY;
   }
   dict_write_uint8(iter, KEY_CMD, cmd);
+  if (cmd == CMD_SHUTTER) {
+    // Debug timings (issue 35).
+    const uint32_t now = prv_now_ms();
+    dict_write_uint16(iter, KEY_SEQ, s_shots + 1);
+    dict_write_uint32(iter, KEY_T_SENT, now - s_press_ms);
+    dict_write_uint8(iter, KEY_RETRIES, s_busy_retries);
+    dict_write_uint32(iter, KEY_PREV_RTT, s_shots ? s_prev_rtt : 0);
+    dict_write_uint32(iter, KEY_PREV_ACK, s_shots ? s_prev_ack : 0);
+    dict_write_uint8(iter, KEY_FAST_BT, s_fast_bt_on);
+    s_sent_ms = now;
+  }
   s_last_cmd = cmd;
   app_message_outbox_send();
   return SEND_OK;
+}
+
+// Debug (issue 35): after a run, send the last photo's round trip, which no later photo carries.
+static void prv_send_run_end(void) {
+  DictionaryIterator *iter;
+  if (app_message_outbox_begin(&iter) != APP_MSG_OK) {
+    return;
+  }
+  dict_write_uint8(iter, KEY_CMD, CMD_RUN_END);
+  dict_write_uint32(iter, KEY_PREV_RTT, s_prev_rtt);
+  dict_write_uint32(iter, KEY_PREV_ACK, s_prev_ack);
+  app_message_outbox_send();
 }
 
 static void prv_send_failed(SendResult result) {
@@ -257,7 +302,8 @@ static void prv_send_cmd(uint8_t cmd) {
 
 // Bluetooth answers faster while a countdown or run is going, at some cost to the battery.
 static void prv_fast_bluetooth(bool fast) {
-  app_comm_set_sniff_interval(fast ? SNIFF_INTERVAL_REDUCED : SNIFF_INTERVAL_NORMAL);
+  s_fast_bt_on = fast && s_fast_bt_allowed;
+  app_comm_set_sniff_interval(s_fast_bt_on ? SNIFF_INTERVAL_REDUCED : SNIFF_INTERVAL_NORMAL);
 }
 
 static void prv_no_answer(void *context) {
@@ -483,6 +529,7 @@ static void prv_select_click(ClickRecognizerRef recognizer, void *context) {
     prv_set_status("Stopped");
     return;
   }
+  s_press_ms = prv_now_ms();
   const int seconds = TIMER_OPTIONS[s_timer_index];
   if (seconds == 0) {
     prv_start_burst();
@@ -606,9 +653,17 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
     }
   }
 
+  Tuple *fast_bt = dict_find(iter, KEY_FAST_BT);
+  if (fast_bt) {
+    s_fast_bt_allowed = fast_bt->value->uint8 != 0;
+  }
+
   Tuple *status = dict_find(iter, KEY_STATUS);
   if (!status) {
     return;
+  }
+  if (s_last_cmd == CMD_SHUTTER) {
+    s_prev_rtt = prv_now_ms() - s_sent_ms;  // Debug timings (issue 35).
   }
   if (status->value->uint8 != STATUS_OK && status->value->uint8 != STATUS_GESTURE_FALLBACK) {
     prv_stop();  // No point taking the rest of the photos.
@@ -624,6 +679,9 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
       } else if (!s_burst_timer) {
         prv_fast_bluetooth(false);
         prv_set_status(status->value->uint8 == STATUS_OK ? "Done" : "Done (tap)");
+        if (s_last_cmd == CMD_SHUTTER) {
+          prv_send_run_end();
+        }
       }
       vibes_short_pulse();
       prv_play_shutter_if_photo();
@@ -648,6 +706,13 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
       vibes_double_pulse();
       prv_play_error();
       break;
+  }
+}
+
+// Debug timings (issue 35): when the phone side acked the photo's message.
+static void prv_outbox_sent(DictionaryIterator *iter, void *context) {
+  if (s_last_cmd == CMD_SHUTTER) {
+    s_prev_ack = prv_now_ms() - s_sent_ms;
   }
 }
 
@@ -740,7 +805,8 @@ static void prv_init(void) {
   }
   app_message_register_inbox_received(prv_inbox_received);
   app_message_register_outbox_failed(prv_outbox_failed);
-  app_message_open(64, 64);
+  app_message_register_outbox_sent(prv_outbox_sent);
+  app_message_open(64, 128);  // The debug timings need the bigger outbox.
 
   // Opened by holding a button on the watchface (Quick Launch). The phone opens the camera and
   // takes a photo if that's turned on in its settings, and ignores this if it's off.

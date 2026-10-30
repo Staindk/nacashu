@@ -54,6 +54,14 @@ object Settings {
         prefs(context).edit().putBoolean("remember_choices", value).apply()
     }
 
+    /** Debug for issue 35: the watch may use its faster Bluetooth mode during a run. */
+    fun fastBluetooth(context: Context): Boolean =
+        prefs(context).getBoolean("fast_bluetooth", true)
+
+    fun setFastBluetooth(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("fast_bluetooth", value).apply()
+    }
+
     /** Turn the accessibility service off when the watchapp closes, for apps that refuse to run while it's on. */
     fun accessibilityAutoOff(context: Context): Boolean =
         prefs(context).getBoolean("accessibility_auto_off", false)

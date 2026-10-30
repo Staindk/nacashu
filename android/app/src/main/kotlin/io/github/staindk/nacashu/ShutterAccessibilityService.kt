@@ -215,13 +215,17 @@ class ShutterAccessibilityService : AccessibilityService() {
 
     fun pressShutter(onStatus: (Int) -> Unit) {
         val root = cameraRoot() ?: return onStatus(ShutterProtocol.STATUS_CAMERA_NOT_OPEN)
+        RunLog.foundRoot()
 
         val shutter = findShutter(root)
+        RunLog.foundShutter()
         if (shutter != null) {
             // A saved button is exactly what the user tapped; don't widen it to a parent.
             val target = clickTarget(shutter, widen = Settings.savedShutter(this) == null)
             val bounds = Rect().also { target.getBoundsInScreen(it) }
-            if (target.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
+            val clicked = target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            RunLog.clicked()
+            if (clicked) {
                 Settings.saveTapPoint(this, bounds.exactCenterX(), bounds.exactCenterY())
                 onStatus(ShutterProtocol.STATUS_OK)
             } else {
