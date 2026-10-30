@@ -94,7 +94,7 @@ object RunLog {
         val sb = StringBuilder()
         sb.append("Nacashu run timings, $started, ${photos.size} photo(s)\n")
         sb.append("All times in ms. Watch columns use the watch's clock, phone columns the phone's.\n\n")
-        sb.append("#  fastBT sent retry | arrive drift | root find click answer handed | rtt ack bt status\n")
+        sb.append("#  awake sent retry | arrive drift | root find click answer handed | rtt ack bt status\n")
         for (p in photos) {
             val arrive = p.receivedAt - first.receivedAt
             // How much later this photo arrived than photo 1 would suggest. Negative means photo 1's

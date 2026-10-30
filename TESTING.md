@@ -67,7 +67,7 @@ If the watch shows "Phone app?" or nothing happens, run
 
 1. Set photos to 5 and the timer to 0, then press SELECT on the watch.
 2. In the phone app, open **Test / Debug** and tap **Debug: share last run timings**. Paste the table into the PR or thread.
-3. Turn off **Debug: fast Bluetooth during a run of photos**, run the same 5 photos again, and share that table too.
+3. Turn off **Debug: keep Bluetooth quick while the watchapp is in use**, run the same 5 photos again, and share that table too.
 4. Repeat each a few times, including once after the watch has sat idle for a minute, since the slow first photos come and go.
 
 The table's `drift` column shows whether photo 1 was slow to reach the phone, `find`/`click`/`answer` show the phone's own work, and `bt` shows the time spent in Bluetooth and the Pebble app.

@@ -12,12 +12,13 @@
 #define KEY_RETRIES  8   // Busy retries before this photo went out.
 #define KEY_PREV_RTT 9   // ms from sending the previous photo to its status arriving.
 #define KEY_PREV_ACK 10  // ms from sending the previous photo to the outbox being acked.
-#define KEY_FAST_BT  11  // Watch to phone: fast Bluetooth was on. Phone to watch: allow it.
+#define KEY_FAST_BT  11  // Watch to phone: keep-awake pings were on. Phone to watch: allow them.
 
 #define CMD_SHUTTER     1
 #define CMD_OPEN_CAMERA 2
 #define CMD_QUICK_LAUNCH 3
 #define CMD_RUN_END     4  // Debug: the last photo's round trip, after a run.
+#define CMD_PING        5  // Keeps Bluetooth quick; the phone ignores it.
 
 #define STATUS_OK               0
 #define STATUS_NO_ACCESSIBILITY 1
@@ -96,6 +97,9 @@ static uint32_t s_prev_ack;
 static bool s_fast_bt_allowed = true;
 static bool s_fast_bt_on;
 static AppTimer *s_fast_bt_timer;
+static uint32_t s_awake_until;
+static uint32_t s_last_msg_ms;
+static bool s_ping_out;
 static char s_status_buf[32];
 static char s_time_buf[8];
 static char s_count_buf[4];
@@ -266,6 +270,7 @@ static SendResult prv_try_send(uint8_t cmd) {
     s_sent_ms = now;
   }
   s_last_cmd = cmd;
+  s_last_msg_ms = prv_now_ms();
   app_message_outbox_send();
   return SEND_OK;
 }
@@ -301,37 +306,50 @@ static void prv_send_cmd(uint8_t cmd) {
   prv_set_status(cmd == CMD_SHUTTER ? "Snap..." : "Opening camera");
 }
 
-// Bluetooth's faster mode, which costs some battery, is on from when Nacashu opens until it has
-// been left alone for FAST_BT_IDLE_MS. Turning it on takes a moment to settle, and until then
-// messages from the phone can take over a second, so it's switched on well before the first photo
-// rather than when SELECT is pressed.
-#define FAST_BT_IDLE_MS (5 * 60 * 1000)
+// Keeping Bluetooth quick. Normally the watch only listens for the phone about every 1.4 s
+// (30 skipped connection events of up to 45 ms), so the phone's answer to a first photo could
+// take that long. PebbleOS listens on every event, every 15 ms, for 10 s after any AppMessage,
+// so while Nacashu is in use it pings the phone whenever nothing else has been sent for a while.
+// app_comm_set_sniff_interval() doesn't help: on BLE its "reduced" mode uses the normal settings.
+// This costs some battery, so it stops after AWAKE_IDLE_MS without a button press, but never
+// during a countdown or a run of photos.
+#define AWAKE_IDLE_MS (5 * 60 * 1000)
+#define KEEPALIVE_CHECK_MS 2000
+#define KEEPALIVE_AFTER_MS 7000
 
-static void prv_fast_bluetooth(bool fast) {
-  s_fast_bt_on = fast && s_fast_bt_allowed;
-  app_comm_set_sniff_interval(s_fast_bt_on ? SNIFF_INTERVAL_REDUCED : SNIFF_INTERVAL_NORMAL);
+static void prv_ping(void) {
+  DictionaryIterator *iter;
+  if (!connection_service_peek_pebble_app_connection() ||
+      app_message_outbox_begin(&iter) != APP_MSG_OK) {
+    return;  // Something else is being sent, which does the same job.
+  }
+  dict_write_uint8(iter, KEY_CMD, CMD_PING);
+  s_ping_out = true;
+  s_last_msg_ms = prv_now_ms();
+  app_message_outbox_send();
 }
 
-static void prv_fast_bt_idle(void *context);
-
-static void prv_keep_fast_bluetooth(void) {
-  if (!s_fast_bt_on) {
-    prv_fast_bluetooth(true);
-  }
-  if (s_fast_bt_timer) {
-    app_timer_reschedule(s_fast_bt_timer, FAST_BT_IDLE_MS);
-  } else {
-    s_fast_bt_timer = app_timer_register(FAST_BT_IDLE_MS, prv_fast_bt_idle, NULL);
-  }
-}
-
-static void prv_fast_bt_idle(void *context) {
+static void prv_keepalive(void *context) {
   s_fast_bt_timer = NULL;
-  if (s_countdown_timer || s_burst_timer) {
-    prv_keep_fast_bluetooth();  // Still busy with a countdown or a run of photos.
+  const uint32_t now = prv_now_ms();
+  const bool busy = s_countdown_timer || s_burst_timer;
+  if (!s_fast_bt_allowed || (!busy && (int32_t)(now - s_awake_until) > 0)) {
+    s_fast_bt_on = false;
     return;
   }
-  prv_fast_bluetooth(false);
+  s_fast_bt_on = true;
+  if (now - s_last_msg_ms >= KEEPALIVE_AFTER_MS) {
+    prv_ping();
+  }
+  s_fast_bt_timer = app_timer_register(KEEPALIVE_CHECK_MS, prv_keepalive, NULL);
+}
+
+// Called when Nacashu opens and on every button press.
+static void prv_keep_fast_bluetooth(void) {
+  s_awake_until = prv_now_ms() + AWAKE_IDLE_MS;
+  if (!s_fast_bt_timer) {
+    prv_keepalive(NULL);
+  }
 }
 
 static void prv_no_answer(void *context) {
@@ -657,6 +675,7 @@ static void prv_click_config(void *context) {
 }
 
 static void prv_inbox_received(DictionaryIterator *iter, void *context) {
+  s_last_msg_ms = prv_now_ms();  // Receiving keeps Bluetooth quick too.
   Tuple *lefty = dict_find(iter, KEY_LEFTY);
   if (lefty && (lefty->value->uint8 != 0) != s_lefty) {
     s_lefty = lefty->value->uint8 != 0;
@@ -685,7 +704,9 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
   Tuple *fast_bt = dict_find(iter, KEY_FAST_BT);
   if (fast_bt) {
     s_fast_bt_allowed = fast_bt->value->uint8 != 0;
-    prv_fast_bluetooth(s_fast_bt_timer != NULL);
+    if (s_fast_bt_allowed) {
+      prv_keep_fast_bluetooth();
+    }
   }
 
   Tuple *status = dict_find(iter, KEY_STATUS);
@@ -740,6 +761,10 @@ static void prv_inbox_received(DictionaryIterator *iter, void *context) {
 
 // Debug timings (issue 35): when the phone side acked the photo's message.
 static void prv_outbox_sent(DictionaryIterator *iter, void *context) {
+  if (s_ping_out) {
+    s_ping_out = false;
+    return;
+  }
   if (s_last_cmd == CMD_SHUTTER) {
     s_prev_ack = prv_now_ms() - s_sent_ms;
   }
@@ -747,6 +772,10 @@ static void prv_outbox_sent(DictionaryIterator *iter, void *context) {
 
 static void prv_outbox_failed(DictionaryIterator *iter, AppMessageResult reason, void *context) {
   APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox failed: %d", (int)reason);
+  if (s_ping_out) {
+    s_ping_out = false;
+    return;  // A lost ping doesn't matter.
+  }
   prv_stop();
   prv_set_status("Phone app?");
   vibes_double_pulse();
@@ -861,7 +890,6 @@ static void prv_deinit(void) {
   if (s_fast_bt_timer) {
     app_timer_cancel(s_fast_bt_timer);
   }
-  prv_fast_bluetooth(false);
   tick_timer_service_unsubscribe();
   prv_stop();
   prv_cancel_status_clear();

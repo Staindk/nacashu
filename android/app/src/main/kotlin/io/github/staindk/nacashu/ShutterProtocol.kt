@@ -32,6 +32,8 @@ object ShutterProtocol {
     const val CMD_QUICK_LAUNCH = 3
     /** Debug: sent after a run with the last photo's round trip. */
     const val CMD_RUN_END = 4
+    /** Sent while the watchapp is in use to keep Bluetooth quick. Needs no answer. */
+    const val CMD_PING = 5
 
     const val STATUS_OK = 0
     const val STATUS_NO_ACCESSIBILITY = 1

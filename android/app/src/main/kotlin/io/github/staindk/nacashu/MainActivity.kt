@@ -192,7 +192,7 @@ class MainActivity : Activity() {
         addButton("Debug: share last dump", testSection) { shareDump() }
         // Temporary debug for issue 35: timings of the last run of photos.
         addButton("Debug: share last run timings", testSection) { shareRunTimings() }
-        testSection.addView(ShutterToggle(this, "Debug: fast Bluetooth during a run of photos", Settings.fastBluetooth(this)) { checked ->
+        testSection.addView(ShutterToggle(this, "Debug: keep Bluetooth quick while the watchapp is in use", Settings.fastBluetooth(this)) { checked ->
             Settings.setFastBluetooth(this, checked)
             sendSettingsToWatch()
         })

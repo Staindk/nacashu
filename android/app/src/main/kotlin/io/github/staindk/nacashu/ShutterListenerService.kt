@@ -25,6 +25,7 @@ class ShutterListenerService : BasePebbleListenerService() {
         if (watchappUUID != ShutterProtocol.WATCHAPP_UUID) return ReceiveResult.Nack
         // Numbers arrive as Int32 or UInt32, whatever size the watch sent.
         val cmd = number(data, ShutterProtocol.KEY_CMD)?.toInt() ?: return ReceiveResult.Nack
+        if (cmd == ShutterProtocol.CMD_PING) return ReceiveResult.Ack
         Log.d(TAG, "cmd=$cmd from $watch")
         if (cmd == ShutterProtocol.CMD_RUN_END) {
             RunLog.ended(

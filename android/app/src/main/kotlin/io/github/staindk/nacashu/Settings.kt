@@ -54,7 +54,7 @@ object Settings {
         prefs(context).edit().putBoolean("remember_choices", value).apply()
     }
 
-    /** Debug for issue 35: the watch may use its faster Bluetooth mode during a run. */
+    /** Debug for issue 35: the watch pings the phone to keep Bluetooth quick while it's in use. */
     fun fastBluetooth(context: Context): Boolean =
         prefs(context).getBoolean("fast_bluetooth", true)
 
