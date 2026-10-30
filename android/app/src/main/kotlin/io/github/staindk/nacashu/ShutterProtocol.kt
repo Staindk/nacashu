@@ -13,6 +13,8 @@ object ShutterProtocol {
     const val KEY_STATUS = 2u
     /** Phone to watch: 1 puts the button labels on the left (lefty mode), 0 on the right. */
     const val KEY_LEFTY = 3u
+    /** Phone to watch: 1 plays sounds on the watch's speaker, 0 keeps it quiet. */
+    const val KEY_SOUNDS = 4u
 
     const val CMD_SHUTTER = 1
     const val CMD_OPEN_CAMERA = 2
@@ -36,7 +38,10 @@ object ShutterProtocol {
 
     /** The settings the phone sends to the watch. */
     fun settingsMessage(context: Context): PebbleDictionary =
-        mapOf(KEY_LEFTY to PebbleDictionaryItem.UInt8(if (Settings.lefty(context)) 1u else 0u))
+        mapOf(
+            KEY_LEFTY to PebbleDictionaryItem.UInt8(if (Settings.lefty(context)) 1u else 0u),
+            KEY_SOUNDS to PebbleDictionaryItem.UInt8(if (Settings.watchSounds(context)) 1u else 0u),
+        )
 
     /** Runs a watch command and reports its status. Must be called on the main thread. */
     fun run(cmd: Int, onStatus: (Int) -> Unit) {
