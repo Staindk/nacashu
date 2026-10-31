@@ -63,9 +63,12 @@ class WatchDiagram(context: Context) : View(context) {
         val shotY = (STRAP_H + FRAME) * CELL + (inH * CELL - shot.height) / 2
         canvas.drawBitmap(shot, shotX.toFloat(), shotY.toFloat(), null)
 
-        // 1 UP, 2 SELECT, 3 DOWN on the right, 4 BACK on the left, lined up with the watchapp's labels.
-        for ((left, at) in listOf(false to 0.18f, false to 0.5f, false to 0.9f, true to 0.18f)) {
-            val y = Math.round((shotY + at * shot.height) / CELL) - BUTTON_H / 2
+        // 1 UP, 2 SELECT, 3 DOWN on the right, 4 BACK on the left across from UP. SELECT is in the
+        // middle of the body, and UP and DOWN a quarter of the body's height above and below it.
+        val middle = STRAP_H * 2 + bodyH // Twice the middle row, so odd heights stay exact.
+        val step = bodyH / 4
+        for ((left, offset) in listOf(false to -1, false to 0, false to 1, true to -1)) {
+            val y = (middle - BUTTON_H) / 2 + offset * step
             buttons += cells(if (left) 0 else BUTTON_W + bodyW, y, BUTTON_W, BUTTON_H, Color.WHITE)
         }
         shot.recycle()
@@ -105,7 +108,7 @@ class WatchDiagram(context: Context) : View(context) {
 
     private companion object {
         // In screenshot pixels: the size of one chunky pixel, and the black gap round the screenshot.
-        const val CELL = 12
+        const val CELL = 10
         const val GAP = 4
         // In chunky pixels, matching the icon's proportions.
         const val FRAME = 3

@@ -33,10 +33,7 @@ object Help {
         "What Nacashu does" to
             "Nacashu turns your Pebble watch into a remote shutter for your phone's camera app. Press " +
             "SELECT on the watch and your camera takes a photo, with all of the photo processing you are " +
-            "used to.<br><br>On the watch:<br>• SELECT takes the photos, and stops a timer or a run of photos." +
-            "<br>• UP changes the timer: 0, 3, 5, 10 or 30 seconds. Hold UP to go back to no timer and one photo." +
-            "<br>• DOWN changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ (until you " +
-            "stop it). Hold DOWN to bring the camera to the front.",
+            "used to. See \"Using the watchapp\" for what each button does.",
         "Why there are two apps" to
             "Watch apps can't control your phone directly. The Nacashu watchapp sends your button press " +
             "through the Pebble app to this companion app, and this app presses the shutter in your camera app." +
@@ -68,13 +65,16 @@ object Help {
     const val WATCHAPP_TITLE = "Using the watchapp"
     const val WATCHAPP =
         "The numbers match the buttons in the picture.*" +
-            "<br><br><b>1. UP</b> starts the timer. Press it again to cancel. Hold it to change the timer to 1, 3, 5, 10 " +
-            "or 30 seconds; the row at the top shows the choices, with the current one highlighted." +
-            "<br><b>2. SELECT</b> takes a photo straight away." +
-            "<br><b>3. DOWN</b> opens the camera on your phone without taking a photo." +
+            "<br><br><b>1. UP</b> changes the timer: 0, 3, 5, 10 or 30 seconds. Hold it to go back to no timer " +
+            "and one photo." +
+            "<br><b>2. SELECT</b> takes the photos, after the timer if there is one." +
+            "<br><b>3. DOWN</b> changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ " +
+            "(until you stop it). Hold it to bring the camera to the front on your phone." +
             "<br><b>4. BACK</b> closes Nacashu." +
-            "<br><br>The middle of the screen shows the time. During a timer it counts down instead, and after a " +
-            "button press it shows what happened for a few seconds, such as \"Done\" or what went wrong." +
+            "<br><br>UP, SELECT or DOWN stops a timer or a run of photos. The rows at the top and bottom show " +
+            "the choices, with the current ones highlighted. The middle of the screen shows the time. During a timer it counts down instead, during a run it counts " +
+            "the photos, and after a button press it shows what happened for a few seconds, such as \"Done\" " +
+            "or what went wrong." +
             "<br><br><small>* In PebbleOS's Left-Handed mode the watch is turned around, so the buttons are on the " +
             "other side. Turn on Lefty below to move the labels with them.</small>"
 
