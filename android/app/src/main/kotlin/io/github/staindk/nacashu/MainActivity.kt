@@ -153,6 +153,12 @@ class MainActivity : Activity() {
         })
         explain(Help.SOUNDS)
 
+        column.addView(ShutterToggle(this, "Remember watchapp settings", Settings.rememberChoices(this)) { checked ->
+            Settings.setRememberChoices(this, checked)
+            sendSettingsToWatch()
+        })
+        explain(Help.REMEMBER)
+
         // Test and debug buttons, hidden until the user opens this section.
         val testSection = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL

@@ -29,6 +29,7 @@ class ShutterListenerService : BasePebbleListenerService() {
             is PebbleDictionaryItem.UInt32 -> item.value.toInt()
             else -> return ReceiveResult.Nack
         }
+        if (cmd == ShutterProtocol.CMD_PING) return ReceiveResult.Ack
         Log.d(TAG, "cmd=$cmd from $watch")
         if (cmd == ShutterProtocol.CMD_QUICK_LAUNCH && !Settings.snapOnQuickLaunch(this)) {
             return ReceiveResult.Ack
