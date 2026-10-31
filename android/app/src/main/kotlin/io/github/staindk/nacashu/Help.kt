@@ -33,10 +33,17 @@ object Help {
         "What Nacashu does" to
             "Nacashu turns your Pebble watch into a remote shutter for your phone's camera app. Press " +
             "SELECT on the watch and your camera takes a photo, with all of the photo processing you are " +
-            "used to. UP starts a timer and DOWN brings the camera to the front.",
+            "used to.<br><br>On the watch:<br>• SELECT takes the photos, and stops a timer or a run of photos." +
+            "<br>• UP changes the timer: 0, 3, 5, 10 or 30 seconds. Hold UP to go back to no timer and one photo." +
+            "<br>• DOWN changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ (until you " +
+            "stop it). Hold DOWN to bring the camera to the front.",
         "Why there are two apps" to
             "Watch apps can't control your phone directly. The Nacashu watchapp sends your button press " +
-            "through the Pebble app to this companion app, and this app presses the shutter in your camera app.",
+            "through the Pebble app to this companion app, and this app presses the shutter in your camera app." +
+            "<br><br>To save power, the watch normally checks for messages from your phone only about every " +
+            "1.4 seconds, which would make the first photo late. So while you use the watchapp, it sends your " +
+            "phone a tiny message every 7 seconds to keep Bluetooth quick. This uses a little battery, so it " +
+            "stops 5 minutes after your last button press (but never during a timer or a run of photos).",
         "Why Nacashu needs accessibility" to
             "$WHY Read more:" +
             "<br>• <a href=\"https://support.google.com/accessibility/android/answer/6006564\">Android " +
