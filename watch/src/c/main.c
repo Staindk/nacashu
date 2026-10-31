@@ -24,8 +24,8 @@
 static const int TIMER_OPTIONS[] = {0, 3, 5, 10, 30};
 #define TIMER_OPTION_COUNT ((int)ARRAY_LENGTH(TIMER_OPTIONS))
 
-// How many photos SELECT takes, cycled by pressing DOWN. 0 means no limit: it keeps going until
-// a button is pressed (or BURST_MAX photos).
+// How many photos SELECT takes, cycled by pressing DOWN. 0 (displayed as ∞) means no limit: it
+// keeps going until a button is pressed (or BURST_MAX photos).
 #define PERSIST_KEY_PHOTOS 5
 static const int PHOTO_OPTIONS[] = {1, 3, 5, 10, 0};
 #define PHOTO_OPTION_COUNT ((int)ARRAY_LENGTH(PHOTO_OPTIONS))
