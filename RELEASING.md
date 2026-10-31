@@ -5,7 +5,8 @@
 1. Bump `versionCode` (Play rejects a number it has seen before) and `versionName` in `android/app/build.gradle.kts`. Bump the watchapp's version in `watch/package.json` to match.
 2. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` (500 characters max). This is the "What's new" text.
 3. Merge to main. The Android workflow builds `nacashu-android-release` (a signed `.aab`) alongside the debug APK.
-4. In Play Console, create a release on the track you want (internal, closed or production), upload the `.aab` and paste the changelog.
+4. In Play Console, create a release on the track you want (internal, closed or production), upload the `.aab` and paste the changelog. Add a last line `Built from <commit>` with the short commit the workflow run built (it's on the run's page, and the app shows it in the status card as "Version 0.3.0 (a0a536e)").
+5. Optionally tag that commit (`git tag v0.3.0 <commit> && git push origin v0.3.0`), so the version links to browsable source. The commit stamp works without tags.
 
 ## Store listing
 

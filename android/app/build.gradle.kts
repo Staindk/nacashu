@@ -2,6 +2,13 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+val commit: String = runCatching {
+    providers.exec {
+        commandLine("git", "rev-parse", "--short=7", "HEAD")
+        isIgnoreExitValue = true
+    }.standardOutput.asText.get().trim()
+}.getOrNull().orEmpty().ifEmpty { "unknown" }
+
 android {
     namespace = "dk.steyn.nacashu"
     compileSdk = 37
@@ -12,6 +19,12 @@ android {
         targetSdk = 36
         versionCode = 3
         versionName = "0.3.0"
+        // The commit this build came from, shown in the app so people can match an installed copy
+        // to the source on GitHub. "unknown" when built outside a git checkout (a source zip, say).
+        buildConfigField("String", "COMMIT", "\"$commit\"")
+    }
+    buildFeatures {
+        buildConfig = true
     }
 
     // CI signs with a permanent key from GitHub secrets (see .github/workflows/android.yml), so

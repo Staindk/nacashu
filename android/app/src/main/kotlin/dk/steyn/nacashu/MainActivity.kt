@@ -329,6 +329,7 @@ class MainActivity : Activity() {
         statusRow("Camera app", appLabel(Settings.cameraPackage(this)))
         statusRow("Shutter", shutter ?: "not set")
         statusRow("Next step", nextStep, gap = true)
+        statusRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.COMMIT})", gap = true)
     }
 
     /** One line of the status card: label on the left, value on the right. */
