@@ -61,6 +61,7 @@ jobs:
             # Timer 3 s and endless photos, to show both rows of choices.
             pin emu-button --emulator $platform click up
             for i in 1 2 3 4; do pin emu-button --emulator $platform click down; done
+            # Wait out the status from the SELECT press above (it clears after 5 s), so the shot shows the time.
             sleep 6
             pin screenshot --emulator $platform --no-open shots/$platform-3-choices.png
             pebble kill
