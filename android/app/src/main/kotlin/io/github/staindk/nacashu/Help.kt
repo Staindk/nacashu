@@ -76,7 +76,7 @@ object Help {
             "$HOLD brings the camera to the front on your phone." +
             "<br><b>4. BACK</b> closes Nacashu." +
             "<br><br>UP, SELECT or DOWN stops a timer or a run of photos. The rows at the top and bottom show " +
-            "the options, with currently set options highlighted. The middle of the screen shows the current or " +
+            "the options, with currently set options highlighted. The middle of the screen shows the " +
             "most recent status/event, otherwise (after 5 seconds of nothing) it shows the current time. " +
             "E.g. a timer counts down, during a multi-photo run it counts the photos, and after a button press " +
             "it shows what happened for a few seconds, such as \"Done\" or what went wrong."
