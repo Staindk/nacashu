@@ -61,15 +61,19 @@ object Help {
             "or email the developer from Nacashu's Play Store page.",
     )
 
+    // A button's hold action, on its own indented line under the press.
+    private const val HOLD = "<br>&nbsp;&nbsp;&nbsp;&nbsp;<b>↳ Hold</b>"
+
     /** The "Using the watchapp" topic, shown under WatchDiagram. Its numbers match the diagram's. */
     const val WATCHAPP_TITLE = "Using the watchapp"
     const val WATCHAPP =
         "The numbers match the buttons in the picture." +
-            "<br><br><b>1. UP</b> changes the timer: 0, 3, 5, 10 or 30 seconds. Hold it to go back to no timer " +
-            "and one photo." +
+            "<br><br><b>1. UP</b> changes the timer: 0, 3, 5, 10 or 30 seconds." +
+            "$HOLD goes back to no timer and one photo." +
             "<br><b>2. SELECT</b> takes the photos, after the timer if there is one." +
             "<br><b>3. DOWN</b> changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ " +
-            "(until you stop it). Hold it to bring the camera to the front on your phone." +
+            "(until you stop it)." +
+            "$HOLD brings the camera to the front on your phone." +
             "<br><b>4. BACK</b> closes Nacashu." +
             "<br><br>UP, SELECT or DOWN stops a timer or a run of photos. The rows at the top and bottom show " +
             "the choices, with the current ones highlighted. The middle of the screen shows the time. During " +
