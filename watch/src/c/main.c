@@ -626,6 +626,7 @@ static void prv_apply_lefty(void) {
   prv_show_status_text();
 }
 
+// The phone app explains these buttons in its Help (Help.WATCHAPP in Help.kt): update it to match.
 static void prv_click_config(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, prv_select_click);
   window_single_click_subscribe(BUTTON_ID_UP, prv_up_click);

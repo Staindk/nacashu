@@ -33,10 +33,7 @@ object Help {
         "What Nacashu does" to
             "Nacashu turns your Pebble watch into a remote shutter for your phone's camera app. Press " +
             "SELECT on the watch and your camera takes a photo, with all of the photo processing you are " +
-            "used to.<br><br>On the watch:<br>• SELECT takes the photos, and stops a timer or a run of photos." +
-            "<br>• UP changes the timer: 0, 3, 5, 10 or 30 seconds. Hold UP to go back to no timer and one photo." +
-            "<br>• DOWN changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ (until you " +
-            "stop it). Hold DOWN to bring the camera to the front.",
+            "used to. See \"Using the watchapp\" for what each button does.",
         "Why there are two apps" to
             "Watch apps can't control your phone directly. The Nacashu watchapp sends your button press " +
             "through the Pebble app to this companion app, and this app presses the shutter in your camera app." +
@@ -63,6 +60,26 @@ object Help {
             "If you have any other questions, please <a href=\"$REPO/issues\">open an issue on GitHub</a> " +
             "or email the developer from Nacashu's Play Store page.",
     )
+
+    // A button's hold action, on its own indented line under the press.
+    private const val HOLD = "<br>&nbsp;&nbsp;&nbsp;&nbsp;<b>↳ Hold</b>"
+
+    /** The "Using the watchapp" topic, shown under WatchDiagram. Its numbers match the diagram's. */
+    const val WATCHAPP_TITLE = "Using the watchapp"
+    const val WATCHAPP =
+        "The numbers match the buttons in the picture." +
+            "<br><br><b>1. UP</b> changes the timer: 0, 3, 5, 10 or 30 seconds." +
+            "$HOLD resets to 0 timer and 1 photo." +
+            "<br><b>2. SELECT</b> takes the photos, after the timer if there is one." +
+            "<br><b>3. DOWN</b> changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ " +
+            "(until you stop it)." +
+            "$HOLD brings the camera to the front on your phone." +
+            "<br><b>4. BACK</b> closes Nacashu." +
+            "<br><br>UP, SELECT or DOWN stops a timer or a run of photos. The rows at the top and bottom show " +
+            "the options, with currently set options highlighted. The middle of the screen shows the " +
+            "most recent status/event, otherwise (after 5 seconds of nothing) it shows the current time. " +
+            "E.g. a timer counts down, during a multi-photo run it counts the photos, and after a button press " +
+            "it shows what happened for a few seconds, such as \"Done\" or what went wrong."
 
     // Shown under each step and setting when Help is on.
     const val STEP_ACCESSIBILITY = "Lets Nacashu press your camera's shutter. Opens Android's accessibility " +
