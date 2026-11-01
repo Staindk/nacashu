@@ -64,7 +64,7 @@ object Help {
     /** The "Using the watchapp" topic, shown under WatchDiagram. Its numbers match the diagram's. */
     const val WATCHAPP_TITLE = "Using the watchapp"
     const val WATCHAPP =
-        "The numbers match the buttons in the picture.*" +
+        "The numbers match the buttons in the picture." +
             "<br><br><b>1. UP</b> changes the timer: 0, 3, 5, 10 or 30 seconds. Hold it to go back to no timer " +
             "and one photo." +
             "<br><b>2. SELECT</b> takes the photos, after the timer if there is one." +
@@ -72,11 +72,9 @@ object Help {
             "(until you stop it). Hold it to bring the camera to the front on your phone." +
             "<br><b>4. BACK</b> closes Nacashu." +
             "<br><br>UP, SELECT or DOWN stops a timer or a run of photos. The rows at the top and bottom show " +
-            "the choices, with the current ones highlighted. The middle of the screen shows the time. During a timer it counts down instead, during a run it counts " +
-            "the photos, and after a button press it shows what happened for a few seconds, such as \"Done\" " +
-            "or what went wrong." +
-            "<br><br><small>* In PebbleOS's Left-Handed mode the watch is turned around, so the buttons are on the " +
-            "other side. Turn on Lefty below to move the labels with them.</small>"
+            "the choices, with the current ones highlighted. The middle of the screen shows the time. During " +
+            "a timer it counts down instead, during a run it counts the photos, and after a button press it " +
+            "shows what happened for a few seconds, such as \"Done\" or what went wrong."
 
     // Shown under each step and setting when Help is on.
     const val STEP_ACCESSIBILITY = "Lets Nacashu press your camera's shutter. Opens Android's accessibility " +
