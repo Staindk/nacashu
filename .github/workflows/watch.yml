@@ -55,6 +55,12 @@ jobs:
             pin install --emulator $platform watch/build/*.pbw
             sleep 2
             pin screenshot --emulator $platform --no-open shots/$platform-1-ready.png
+            if [ $platform = emery ]; then
+              # The phone app's Help shows this one when Lefty is on. Lefty goes off again for the shots below.
+              ~/.local/share/uv/tools/pebble-tool/bin/python watch/tools/set_lefty.py emery 1
+              pin screenshot --emulator emery --no-open shots/emery-4-lefty.png
+              ~/.local/share/uv/tools/pebble-tool/bin/python watch/tools/set_lefty.py emery 0
+            fi
             pin emu-button --emulator $platform click select
             sleep 1
             pin screenshot --emulator $platform --no-open shots/$platform-2-snap.png
