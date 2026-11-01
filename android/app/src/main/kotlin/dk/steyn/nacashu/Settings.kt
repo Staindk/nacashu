@@ -46,6 +46,14 @@ object Settings {
         prefs(context).edit().putBoolean("watch_sounds", value).apply()
     }
 
+    /** The watch keeps its timer and photo count for next time. */
+    fun rememberChoices(context: Context): Boolean =
+        prefs(context).getBoolean("remember_choices", true)
+
+    fun setRememberChoices(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean("remember_choices", value).apply()
+    }
+
     /** Turn the accessibility service off when the watchapp closes, for apps that refuse to run while it's on. */
     fun accessibilityAutoOff(context: Context): Boolean =
         prefs(context).getBoolean("accessibility_auto_off", false)

@@ -33,10 +33,14 @@ object Help {
         "What Nacashu does" to
             "Nacashu turns your Pebble watch into a remote shutter for your phone's camera app. Press " +
             "SELECT on the watch and your camera takes a photo, with all of the photo processing you are " +
-            "used to. UP starts a timer and DOWN brings the camera to the front.",
+            "used to. See \"Using the watchapp\" for what each button does.",
         "Why there are two apps" to
             "Watch apps can't control your phone directly. The Nacashu watchapp sends your button press " +
-            "through the Pebble app to this companion app, and this app presses the shutter in your camera app.",
+            "through the Pebble app to this companion app, and this app presses the shutter in your camera app." +
+            "<br><br>To save power, the watch normally checks for messages from your phone only about every " +
+            "1.4 seconds, which would make the first photo late. So while you use the watchapp, it sends your " +
+            "phone a tiny message every 7 seconds to keep Bluetooth quick. This uses a little battery, so it " +
+            "stops 5 minutes after your last button press (but never during a timer or a run of photos).",
         "Why Nacashu needs accessibility" to
             "$WHY Read more:" +
             "<br>• <a href=\"https://support.google.com/accessibility/android/answer/6006564\">Android " +
@@ -57,6 +61,26 @@ object Help {
             "or email the developer from Nacashu's Play Store page.",
     )
 
+    // A button's hold action, on its own indented line under the press.
+    private const val HOLD = "<br>&nbsp;&nbsp;&nbsp;&nbsp;<b>↳ Hold</b>"
+
+    /** The "Using the watchapp" topic, shown under WatchDiagram. Its numbers match the diagram's. */
+    const val WATCHAPP_TITLE = "Using the watchapp"
+    const val WATCHAPP =
+        "The numbers match the buttons in the picture." +
+            "<br><br><b>1. UP</b> changes the timer: 0, 3, 5, 10 or 30 seconds." +
+            "$HOLD resets to 0 timer and 1 photo." +
+            "<br><b>2. SELECT</b> takes the photos, after the timer if there is one." +
+            "<br><b>3. DOWN</b> changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ " +
+            "(until you stop it)." +
+            "$HOLD brings the camera to the front on your phone." +
+            "<br><b>4. BACK</b> closes Nacashu." +
+            "<br><br>UP, SELECT or DOWN stops a timer or a run of photos. The rows at the top and bottom show " +
+            "the options, with currently set options highlighted. The middle of the screen shows the " +
+            "most recent status/event, otherwise (after 5 seconds of nothing) it shows the current time. " +
+            "E.g. a timer counts down, during a multi-photo run it counts the photos, and after a button press " +
+            "it shows what happened for a few seconds, such as \"Done\" or what went wrong."
+
     // Shown under each step and setting when Help is on.
     const val STEP_ACCESSIBILITY = "Lets Nacashu press your camera's shutter. Opens Android's accessibility " +
         "settings, where you turn on Nacashu. Stuck? See \"Turning on accessibility\" above."
@@ -73,6 +97,9 @@ object Help {
     const val SOUNDS = "Plays a tick for each of the timer's last 10 seconds, a shutter click when the photo is taken, " +
         "and a buzz when something goes wrong. Uses the watch's own speaker volume, and stays quiet when " +
         "the watch is muted or in Quiet Time. The Pebble Round 2 has no speaker."
+    const val REMEMBER = "On the watch, UP changes the timer and DOWN changes how many photos SELECT takes, " +
+        "about a second apart. With this on, the watch keeps your choices for next time. With it off, " +
+        "Nacashu starts with no timer and one photo each time you open it."
     const val TEST_DEBUG = "Check the phone side without your watch, and share what Nacashu sees if it " +
         "can't find the shutter."
 }
