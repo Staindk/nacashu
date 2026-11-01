@@ -69,7 +69,7 @@ object Help {
     const val WATCHAPP =
         "The numbers match the buttons in the picture." +
             "<br><br><b>1. UP</b> changes the timer: 0, 3, 5, 10 or 30 seconds." +
-            "$HOLD goes back to no timer and one photo." +
+            "$HOLD resets to 0 timer and 1 photo." +
             "<br><b>2. SELECT</b> takes the photos, after the timer if there is one." +
             "<br><b>3. DOWN</b> changes how many photos SELECT takes, about a second apart: 1, 3, 5, 10 or ∞ " +
             "(until you stop it)." +
