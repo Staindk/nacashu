@@ -102,9 +102,17 @@ def feature_graphic(path):
     icon = Image.open(DOCS / "icon.png").convert("RGB").resize((128, 128), Image.NEAREST)
     img.paste(icon, (48, 48))
     d.text((64, 205), "NACASHU", font=font(pixel_font, 72), fill=WHITE)
-    d.text((64, 298), "Your Pebble is the shutter.", font=font(sans_font, 26), fill=WHITE)
-    d.text((64, 338), "Your phone's own camera takes the photo.", font=font(sans_font, 22), fill=(170, 170, 170))
-    d.rectangle((64, 392, 160, 398), fill=WHITE)
+    # "Native camera shutter", with the letters the name comes from underlined.
+    f = font(sans_font, 34)
+    x, y = 64, 296
+    line_y = y + f.getmetrics()[0] + 6
+    for text, underline in [("Na", 1), ("tive ", 0), ("ca", 1), ("mera ", 0), ("shu", 1), ("tter", 0)]:
+        width = d.textlength(text, font=f)
+        d.text((x, y), text, font=f, fill=WHITE)
+        if underline:
+            d.rectangle((x, line_y, x + width - 1, line_y + 3), fill=WHITE)
+        x += width
+    d.text((64, 350), "for Pebble watches", font=f, fill=(150, 150, 150))
     w = watch(screen("emery-1-ready", 2), 2, pad=8)
     img.paste(w, (W - w.width - 48, (H - w.height) // 2), w)
     img.save(path, optimize=True)
