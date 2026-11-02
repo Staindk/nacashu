@@ -72,26 +72,26 @@ def centred(d, y, text, f, w, fill=WHITE):
 
 
 def phone_screenshot(lines, shot, path, round_screen=False):
-    W, H = 1080, 2340
+    W, H = 1080, 1920  # 9:16; Play rejects anything longer than 2:1
     img = Image.new("RGB", (W, H), BLACK)
     d = ImageDraw.Draw(img)
     big = font(pixel_font, 96)
     for i, line in enumerate(lines):
-        centred(d, 150 + i * 120, line, big, W)
+        centred(d, 110 + i * 120, line, big, W)
     # Phone running the camera app.
-    px, py, pw, ph = 120, 450, 840, 1800
+    px, py, pw, ph = 160, 390, 760, 1470
     d.rounded_rectangle((px, py, px + pw, py + ph), radius=70, fill=DARK)
     view = scene(pw - 60, ph - 60, 15)
     mask = Image.new("L", view.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, view.width - 1, view.height - 1), radius=45, fill=255)
     img.paste(view, (px + 30, py + 30), mask)
-    cx, cy = px + pw // 2, py + ph - 200
+    cx, cy = px + pw // 2, py + ph - 170
     d.ellipse((cx - 90, cy - 90, cx + 90, cy + 90), fill=WHITE)
     d.ellipse((cx - 72, cy - 72, cx + 72, cy + 72), fill=BLACK)
     d.ellipse((cx - 62, cy - 62, cx + 62, cy + 62), fill=WHITE)
     # The watch, overlapping the phone's right edge.
     w = watch(screen(shot, 3), 3, round_screen)
-    img.paste(w, (W - w.width - 10, py + ph - w.height - 330), w)
+    img.paste(w, (W - w.width - 10, py + ph - w.height - 300), w)
     img.save(path, optimize=True)
 
 
