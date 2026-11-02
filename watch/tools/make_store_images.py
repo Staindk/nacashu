@@ -110,7 +110,7 @@ def feature_graphic(path):
         width = d.textlength(text, font=f)
         d.text((x, y), text, font=f, fill=WHITE)
         if underline:
-            d.rectangle((x, line_y, x + width - 1, line_y + 3), fill=WHITE)
+            d.rectangle((x, line_y, x + width - 1, line_y + 3), fill=(150, 150, 150))
         x += width
     d.text((64, 350), "for Pebble watches", font=f, fill=(150, 150, 150))
     w = watch(screen("emery-1-ready", 2), 2, pad=8)
