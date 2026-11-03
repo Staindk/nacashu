@@ -66,6 +66,13 @@ def scene(w, h, cell):
     return small.resize((gw * cell, gh * cell), Image.NEAREST)
 
 
+def ink_left(text, f):
+    """How far right of x the first lit pixel of text lands (the font's left side bearing)."""
+    probe = Image.new("L", (int(f.getlength(text)) + 200, f.size * 2))
+    ImageDraw.Draw(probe).text((100, 0), text, font=f, fill=255)
+    return probe.getbbox()[0] - 100
+
+
 def centred(d, y, text, f, w, fill=WHITE):
     x = (w - d.textlength(text, font=f)) / 2
     d.text((x, y), text, font=f, fill=fill)
@@ -101,10 +108,13 @@ def feature_graphic(path):
     d = ImageDraw.Draw(img)
     icon = Image.open(DOCS / "icon.png").convert("RGB").resize((128, 128), Image.NEAREST)
     img.paste(icon, (48, 48))
-    d.text((64, 205), "NACASHU", font=font(pixel_font, 72), fill=WHITE)
+    # Everything on the left lines up on the icon's left edge (64), by ink, not by text origin.
+    title = font(pixel_font, 72)
+    d.text((64 - ink_left("NACASHU", title), 205), "NACASHU", font=title, fill=WHITE)
     # "Native camera shutter", with the letters the name comes from underlined.
     f = font(sans_font, 34)
-    x, y = 64, 296
+    left = 64 - ink_left("N", f)
+    x, y = left, 296
     line_y = y + f.getmetrics()[0] + 2
     for text, underline in [("Na", 1), ("tive ", 0), ("ca", 1), ("mera ", 0), ("shu", 1), ("tter", 0)]:
         width = d.textlength(text, font=f)
@@ -112,7 +122,7 @@ def feature_graphic(path):
         if underline:
             d.rectangle((x, line_y, x + width - 1, line_y + 3), fill=(150, 150, 150))
         x += width
-    d.text((64, 350), "for Pebble watches", font=f, fill=(150, 150, 150))
+    d.text((64 - ink_left("f", f), 350), "for Pebble watches", font=f, fill=(150, 150, 150))
     w = watch(screen("emery-1-ready", 2), 2, pad=8)
     img.paste(w, (W - w.width - 48, (H - w.height) // 2), w)
     img.save(path, optimize=True)
