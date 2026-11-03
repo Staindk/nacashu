@@ -1,5 +1,7 @@
 # Nacashu: native camera shutter for Pebble
 
+![Nacashu: native camera shutter for Pebble watches](docs/header.png)
+
 Nacashu turns a Pebble watch into a remote shutter for your phone's **own** camera app, starting with Pixel Camera. Your camera app still takes the photo, so you keep all of its processing.
 
 ```

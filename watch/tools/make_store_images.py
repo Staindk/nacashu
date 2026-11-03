@@ -4,6 +4,8 @@
 # Run it after the watchapp's look changes. Fonts aren't committed; use Silkscreen
 # (https://fonts.google.com/specimen/Silkscreen) and any plain sans such as Inter.
 # Phone app screenshots (4-*.png onwards) are real captures and are left alone.
+# Also draws docs/header.png (top of the README) and docs/pebble-banner.png (720x320, for the
+# Pebble appstore listing).
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -102,29 +104,88 @@ def phone_screenshot(lines, shot, path, round_screen=False):
     img.save(path, optimize=True)
 
 
-def feature_graphic(path):
-    W, H = 1024, 500
-    img = Image.new("RGB", (W, H), BLACK)
+def pixel_watch(name, cell, height):
+    """The Help screen's chunky watch (android .../WatchDiagram.kt): icon-style body, grey straps,
+    four buttons, the screenshot in its window. Drawn in cells, then scaled to height."""
+    shot = Image.open(DOCS / f"{name}.png").convert("RGB")
+    gap, frame, button_w, button_h, strap_h = 4, 3, 2, 4, 4
+    in_w, in_h = (shot.width + 2 * gap + cell - 1) // cell, (shot.height + 2 * gap + cell - 1) // cell
+    body_w, body_h = in_w + 2 * frame, in_h + 2 * frame
+    img = Image.new("RGBA", ((body_w + 2 * button_w) * cell, (body_h + 2 * strap_h) * cell), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    icon = Image.open(DOCS / "icon.png").convert("RGB").resize((128, 128), Image.NEAREST)
-    img.paste(icon, (48, 48))
-    # Everything on the left lines up on the icon's left edge (64), by ink, not by text origin.
-    title = font(pixel_font, 72)
-    d.text((64 - ink_left("NACASHU", title), 205), "NACASHU", font=title, fill=WHITE)
-    # "Native camera shutter", with the letters the name comes from underlined.
-    f = font(sans_font, 34)
-    left = 64 - ink_left("N", f)
-    x, y = left, 296
+
+    def cells(x, y, w, h, colour):
+        d.rectangle((x * cell, y * cell, (x + w) * cell - 1, (y + h) * cell - 1), fill=colour)
+
+    strap_w = body_w // 2
+    cells(button_w + (body_w - strap_w) // 2, 0, strap_w, strap_h, GREY)
+    cells(button_w + (body_w - strap_w) // 2, strap_h + body_h, strap_w, strap_h, GREY)
+    cells(button_w + 2, strap_h, body_w - 4, body_h, WHITE)
+    cells(button_w + 1, strap_h + 1, body_w - 2, body_h - 2, WHITE)
+    cells(button_w, strap_h + 2, body_w, body_h - 4, WHITE)
+    cells(button_w + frame, strap_h + frame, in_w, in_h, BLACK)
+    img.paste(shot, ((button_w + frame) * cell + (in_w * cell - shot.width) // 2,
+                     (strap_h + frame) * cell + (in_h * cell - shot.height) // 2))
+    middle, step = strap_h * 2 + body_h, body_h // 4
+    for left, offset in [(False, -1), (False, 0), (False, 1), (True, -1)]:
+        cells(0 if left else button_w + body_w, (middle - button_h) // 2 + offset * step, button_w, button_h, WHITE)
+    scale = height / img.height
+    return img.resize((round(img.width * scale), height), Image.NEAREST)
+
+
+def dither(w, h, cell, top, bottom, light=GREY):
+    """Ordered (Bayer) dither from top to bottom, black to light, in square cells."""
+    small = Image.new("RGB", (w // cell + 1, h // cell + 1), BLACK)
+    px = small.load()
+    for y in range(small.height):
+        level = top + (bottom - top) * y / small.height
+        for x in range(small.width):
+            if level > BAYER[y % 4][x % 4] / 16:
+                px[x, y] = light
+    return small.resize((small.width * cell, small.height * cell), Image.NEAREST).crop((0, 0, w, h))
+
+
+def name_block(d, left, top, title_size, line_size):
+    """NACASHU, then "Native camera shutter" with Na/ca/shu underlined, then "for Pebble watches".
+    All three line up on left by ink, not by text origin."""
+    title, f = font(pixel_font, title_size), font(sans_font, line_size)
+    d.text((left - ink_left("NACASHU", title), top), "NACASHU", font=title, fill=WHITE)
+    x, y = left - ink_left("N", f), top + title_size * 95 // 72
     line_y = y + f.getmetrics()[0] + 2
     for text, underline in [("Na", 1), ("tive ", 0), ("ca", 1), ("mera ", 0), ("shu", 1), ("tter", 0)]:
         width = d.textlength(text, font=f)
         d.text((x, y), text, font=f, fill=WHITE)
         if underline:
-            d.rectangle((x, line_y, x + width - 1, line_y + 3), fill=(150, 150, 150))
+            d.rectangle((x, line_y, x + width - 1, line_y + max(2, line_size // 9)), fill=(150, 150, 150))
         x += width
-    d.text((64 - ink_left("f", f), 350), "for Pebble watches", font=f, fill=(150, 150, 150))
-    w = watch(screen("emery-1-ready", 2), 2, pad=8)
-    img.paste(w, (W - w.width - 48, (H - w.height) // 2), w)
+    d.text((left - ink_left("f", f), y + line_size * 54 // 34), "for Pebble watches", font=f, fill=(150, 150, 150))
+
+
+def feature_graphic(path):
+    """Play's 1024x500 banner: name on the left, the pixel watch on the right, a dithered ground."""
+    W, H = 1024, 500
+    img = Image.new("RGB", (W, H), BLACK)
+    img.paste(dither(W, 200, 8, 0.0, 0.7), (0, 300))
+    name_block(ImageDraw.Draw(img), 64, 110, 72, 34)
+    w = pixel_watch("emery-1-ready", 8, 450)
+    img.paste(w, (W - w.width - 56, 25), w)
+    img.save(path, optimize=True)
+
+
+def centred_banner(W, H, path):
+    """Centred name on a black plate over a dithered sky: README header and Pebble appstore banner."""
+    img = dither(W, H, 8, 0.85, 0.0)
+    d = ImageDraw.Draw(img)
+    title_size = H * 96 // 500
+    line_size = title_size * 34 // 96
+    # Measure the block to centre it and size its plate.
+    probe = Image.new("RGB", (W, H))
+    name_block(ImageDraw.Draw(probe), 0, 0, title_size, line_size)
+    bw, bh = probe.getbbox()[2], probe.getbbox()[3]
+    left, top = (W - bw) // 2, (H - bh) // 2
+    pad = line_size
+    d.rectangle((left - pad, top - pad, left + bw + pad, top + bh + pad), fill=BLACK)
+    name_block(d, left, top, title_size, line_size)
     img.save(path, optimize=True)
 
 
@@ -135,4 +196,6 @@ feature_graphic(out / "featureGraphic.png")
 phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png")
 phone_screenshot(["TIMER AND", "BURSTS"], "emery-3-choices", out / "phoneScreenshots/2-timer.png")
 phone_screenshot(["YOUR CAMERA'S", "OWN PHOTOS"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", round_screen=True)
-print("wrote", out)
+centred_banner(1280, 400, DOCS / "header.png")
+centred_banner(720, 320, DOCS / "pebble-banner.png")
+print("wrote", out, "and docs/header.png, docs/pebble-banner.png")
