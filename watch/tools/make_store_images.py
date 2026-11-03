@@ -105,7 +105,7 @@ def feature_graphic(path):
     # "Native camera shutter", with the letters the name comes from underlined.
     f = font(sans_font, 34)
     x, y = 64, 296
-    line_y = y + f.getmetrics()[0] + 6
+    line_y = y + f.getmetrics()[0] + 2
     for text, underline in [("Na", 1), ("tive ", 0), ("ca", 1), ("mera ", 0), ("shu", 1), ("tter", 0)]:
         width = d.textlength(text, font=f)
         d.text((x, y), text, font=f, fill=WHITE)
