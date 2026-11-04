@@ -17,7 +17,7 @@ android {
         applicationId = "dk.steyn.nacashu"
         minSdk = 29
         targetSdk = 36
-        versionCode = 3
+        versionCode = 300 // major * 10000 + minor * 100 + patch, from versionName (see RELEASING.md)
         versionName = "0.3.0"
         // The commit this build came from, shown in the app so people can match an installed copy
         // to the source on GitHub. "unknown" when built outside a git checkout (a source zip, say).
