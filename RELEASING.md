@@ -5,7 +5,7 @@
 1. Bump `versionCode` (Play rejects a number it has seen before) and `versionName` in `android/app/build.gradle.kts`. Bump the watchapp's version in `watch/package.json` to match.
 2. Add `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` (500 characters max). This is the "What's new" text.
 3. Merge to main. The Android workflow builds `nacashu-android-release` (a signed `.aab`) alongside the debug APK.
-4. In Play Console, create a release on the track you want (internal, closed or production), upload the `.aab` and paste the changelog. Add a last line `Built from <commit>` with the short commit the workflow run built (it's on the run's page, and the app shows it in the status card as "Version 0.3.0 (a0a536e)").
+4. In Play Console, create a release on the production track (before Google grants production access, the closed testing track: see "First-time setup" below), upload the `.aab` and paste the changelog. Add a last line `Built from <commit>` with the short commit the workflow run built (it's on the run's page, and the app shows it in the status card as "Version 0.3.0 (a0a536e)").
 5. Optionally tag that commit (`git tag v0.3.0 <commit> && git push origin v0.3.0`), so the version links to browsable source. The commit stamp works without tags.
 
 ## Store listing
@@ -36,7 +36,8 @@ Done once, in this order:
    - Privacy policy URL: the GitHub page for `PRIVACY.md`. The repo has to be public first, or the policy hosted somewhere public.
    - Accessibility API declaration: Nacashu is not an accessibility tool, so declare what the service does (presses the shutter in the chosen camera app when the watch asks), and attach a short video showing the in-app disclosure, the consent, and a photo taken from the watch.
    - Data safety: no data collected or shared.
-   - Content rating questionnaire, target audience (18+ is simplest), ads: none, app access: no login needed (explain the app needs a Pebble watch to do anything).
+   - Content rating questionnaire, ads: none, target audience: tick 13-15, 16-17 and 18+. Leave out the under-13 groups, which bring in Play's Families policy. The target audience doesn't hide the app from younger people unless you also tick "Restrict minor access" (only offered with 18+ alone), and the age rating shoppers see comes from the questionnaire, not from this ([Google's help page](https://support.google.com/googleplay/android-developer/answer/9867159)).
+   - App access: no login needed (explain the app needs a Pebble watch to do anything).
 5. **Store listing.** Copy in the files above. Category: Photography.
 6. **Closed test.** New personal accounts must run a closed test with at least 12 testers opted in for 14 days in a row before they can apply for production access ([Google's help page](https://support.google.com/googleplay/android-developer/answer/14151465)). Create a closed testing track, add testers by email or a Google Group, and share the opt-in link.
 7. **Production access.** After the 14 days, apply from the Dashboard. Google asks a few questions about the test. Once approved, promote the release to production.

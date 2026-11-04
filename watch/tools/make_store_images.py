@@ -105,11 +105,12 @@ def phone_screenshot(lines, shot, path, round_screen=False):
     img.save(path, optimize=True)
 
 
-def pixel_watch(name, cell, height):
+def pixelated_watch(name, cell, shot_scale=1, strap_h=4):
     """The Help screen's chunky watch (android .../WatchDiagram.kt): icon-style body, grey straps,
-    four buttons, the screenshot in its window. Drawn in cells, then scaled to height."""
-    shot = Image.open(DOCS / f"{name}.png").convert("RGB")
-    gap, frame, button_w, button_h, strap_h = 4, 3, 2, 4, 4
+    four buttons, the screenshot in its window. Cells are cell px; the screenshot is scaled by a
+    whole number, so its pixels stay even."""
+    shot = screen(name, shot_scale)
+    gap, frame, button_w, button_h = 4 * shot_scale, 3, 2, 4
     in_w, in_h = (shot.width + 2 * gap + cell - 1) // cell, (shot.height + 2 * gap + cell - 1) // cell
     body_w, body_h = in_w + 2 * frame, in_h + 2 * frame
     img = Image.new("RGBA", ((body_w + 2 * button_w) * cell, (body_h + 2 * strap_h) * cell), (0, 0, 0, 0))
@@ -119,8 +120,9 @@ def pixel_watch(name, cell, height):
         d.rectangle((x * cell, y * cell, (x + w) * cell - 1, (y + h) * cell - 1), fill=colour)
 
     strap_w = body_w // 2
-    cells(button_w + (body_w - strap_w) // 2, 0, strap_w, strap_h, GREY)
-    cells(button_w + (body_w - strap_w) // 2, strap_h + body_h, strap_w, strap_h, GREY)
+    if strap_h:
+        cells(button_w + (body_w - strap_w) // 2, 0, strap_w, strap_h, GREY)
+        cells(button_w + (body_w - strap_w) // 2, strap_h + body_h, strap_w, strap_h, GREY)
     cells(button_w + 2, strap_h, body_w - 4, body_h, WHITE)
     cells(button_w + 1, strap_h + 1, body_w - 2, body_h - 2, WHITE)
     cells(button_w, strap_h + 2, body_w, body_h - 4, WHITE)
@@ -130,8 +132,7 @@ def pixel_watch(name, cell, height):
     middle, step = strap_h * 2 + body_h, body_h // 4
     for left, offset in [(False, -1), (False, 0), (False, 1), (True, -1)]:
         cells(0 if left else button_w + body_w, (middle - button_h) // 2 + offset * step, button_w, button_h, WHITE)
-    scale = height / img.height
-    return img.resize((round(img.width * scale), height), Image.NEAREST)
+    return img
 
 
 def dither(w, h, cell, top, bottom, light=GREY):
@@ -168,8 +169,10 @@ def feature_graphic(path):
     img = Image.new("RGB", (W, H), BLACK)
     img.paste(dither(W, 200, 8, 0.0, 0.7), (0, 300))
     name_block(ImageDraw.Draw(img), 64, 110, 72, 34)
-    w = pixel_watch("emery-1-ready", 8, 450)
-    img.paste(w, (W - w.width - 56, 25), w)
+    # Same proportions as the Help screen (10 px cells, screenshot at 1x). A 2x screenshot needs a
+    # watch taller than the banner, and any in-between size scales the watch screen unevenly.
+    w = pixelated_watch("emery-1-ready", 10)
+    img.paste(w, (W - w.width - 64, (H - w.height) // 2), w)
     img.save(path, optimize=True)
 
 
