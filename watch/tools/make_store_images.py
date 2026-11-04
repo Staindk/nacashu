@@ -199,7 +199,7 @@ Image.open(DOCS / "icon.png").convert("RGB").resize((512, 512), Image.NEAREST).s
 feature_graphic(out / "featureGraphic.png")
 phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png")
 phone_screenshot(["TIMER AND", "BURSTS"], "emery-3-choices", out / "phoneScreenshots/2-timer.png")
-phone_screenshot(["YOUR CAMERA'S", "OWN PHOTOS"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", round_screen=True)
+phone_screenshot(["YOUR PHONE'S", "NATIVE CAMERA"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", round_screen=True)
 def pebble_icon(size, path, invert=False):
     """The 32x32 icon at the biggest whole-number scale that fits, centred on a square of size.
     invert swaps black and white (the grey straps stay grey)."""
