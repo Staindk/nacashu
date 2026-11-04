@@ -1,5 +1,7 @@
 # Nacashu: native camera shutter for Pebble
 
+![Nacashu: native camera shutter for Pebble watches](docs/header.png)
+
 Nacashu turns a Pebble watch into a remote shutter for your phone's **own** camera app, starting with Pixel Camera. Your camera app still takes the photo, so you keep all of its processing.
 
 ```
@@ -55,7 +57,9 @@ watch/tools/      fake_phone.py: plays the phone side against the emulator. upda
 android/          Companion app (Kotlin, minSdk 29).
 docs/             Emulator screenshots, which CI commits to a PR when they change, and icon.png,
                   the 32x32 app icon the Android launcher icon is drawn from.
+fastlane/         Google Play store listing: text, icon, feature graphic and screenshots. See RELEASING.md.
 .github/          CI: builds the .pbw and .apk and takes emulator screenshots, for pull requests and main.
+                  On main it also builds the signed .aab that goes to Google Play.
 ```
 
 ## Building

@@ -1,4 +1,4 @@
-package io.github.staindk.nacashu
+package dk.steyn.nacashu
 
 import android.app.Activity
 import android.app.AlertDialog
@@ -352,6 +352,7 @@ class MainActivity : Activity() {
         statusRow("Camera app", appLabel(Settings.cameraPackage(this)))
         statusRow("Shutter", shutter ?: "not set")
         statusRow("Next step", nextStep, gap = true)
+        statusRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.COMMIT})", gap = true)
     }
 
     /** One line of the status card: label on the left, value on the right. */

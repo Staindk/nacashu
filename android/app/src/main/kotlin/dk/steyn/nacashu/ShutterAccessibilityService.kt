@@ -1,4 +1,4 @@
-package io.github.staindk.nacashu
+package dk.steyn.nacashu
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription

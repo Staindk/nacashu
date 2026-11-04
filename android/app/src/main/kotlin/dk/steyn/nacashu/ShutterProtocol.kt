@@ -1,4 +1,4 @@
-package io.github.staindk.nacashu
+package dk.steyn.nacashu
 
 import android.content.Context
 import io.rebble.pebblekit2.common.model.PebbleDictionary
