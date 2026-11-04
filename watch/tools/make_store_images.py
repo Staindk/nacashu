@@ -5,7 +5,8 @@
 # (https://fonts.google.com/specimen/Silkscreen) and any plain sans such as Inter.
 # Phone app screenshots (4-*.png onwards) are real captures and are left alone.
 # Also draws docs/header.png (top of the README) and docs/pebble-banner.png (720x320, for the
-# Pebble appstore listing).
+# Pebble appstore listing), and the appstore's icons: pebble-icon-80.png and pebble-icon-144.png
+# (watchapp) and pebble-companion-icon-144.png (the Android companion, drawn inverted).
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -196,6 +197,22 @@ feature_graphic(out / "featureGraphic.png")
 phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png")
 phone_screenshot(["TIMER AND", "BURSTS"], "emery-3-choices", out / "phoneScreenshots/2-timer.png")
 phone_screenshot(["YOUR CAMERA'S", "OWN PHOTOS"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", round_screen=True)
+def pebble_icon(size, path, invert=False):
+    """The 32x32 icon at the biggest whole-number scale that fits, centred on a square of size.
+    invert swaps black and white (the grey straps stay grey)."""
+    icon = Image.open(DOCS / "icon.png").convert("RGB")
+    if invert:
+        icon = Image.eval(icon, lambda v: 255 - v if v in (0, 255) else v)
+    scale = size // icon.width
+    img = Image.new("RGB", (size, size), WHITE if invert else BLACK)
+    big = icon.resize((icon.width * scale, icon.height * scale), Image.NEAREST)
+    img.paste(big, ((size - big.width) // 2, (size - big.height) // 2))
+    img.save(path, optimize=True)
+
+
 centred_banner(1280, 400, DOCS / "header.png")
+pebble_icon(80, DOCS / "pebble-icon-80.png")
+pebble_icon(144, DOCS / "pebble-icon-144.png")
+pebble_icon(144, DOCS / "pebble-companion-icon-144.png", invert=True)
 centred_banner(720, 320, DOCS / "pebble-banner.png")
 print("wrote", out, "and docs/header.png, docs/pebble-banner.png")
