@@ -6,7 +6,7 @@
 # Phone app screenshots (4-*.png onwards) are real captures and are left alone.
 # Also draws docs/header.png (top of the README) and docs/pebble-banner.png (720x320, for the
 # Pebble appstore listing), and the appstore's icons: pebble-icon-80.png and pebble-icon-144.png
-# (watchapp) and pebble-companion-icon-144.png (the Android companion, drawn inverted).
+# (watchapp) and inverted-pebble-companion-icon-144.png (the Android companion, drawn inverted).
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -213,6 +213,6 @@ def pebble_icon(size, path, invert=False):
 centred_banner(1280, 400, DOCS / "header.png")
 pebble_icon(80, DOCS / "pebble-icon-80.png")
 pebble_icon(144, DOCS / "pebble-icon-144.png")
-pebble_icon(144, DOCS / "pebble-companion-icon-144.png", invert=True)
+pebble_icon(144, DOCS / "inverted-pebble-companion-icon-144.png", invert=True)
 centred_banner(720, 320, DOCS / "pebble-banner.png")
 print("wrote", out, "and docs/header.png, docs/pebble-banner.png")
