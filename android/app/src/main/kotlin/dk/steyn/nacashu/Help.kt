@@ -37,6 +37,10 @@ object Help {
         "Why there are two apps" to
             "Watch apps can't control your phone directly. The Nacashu watchapp sends your button press " +
             "through the Pebble app to this companion app, and this app presses the shutter in your camera app." +
+            "<br><br>When you install or update the watchapp, the Pebble app may ask whether Nacashu can " +
+            "\"Exchange messages with dk.steyn.nacashu\". Allow it, or your button presses can't reach this " +
+            "app. That is the only permission the watchapp asks for. You can change it later on Nacashu's " +
+            "page in the Pebble app." +
             "<br><br>To save power, the watch normally checks for messages from your phone only about every " +
             "1.4 seconds, which would make the first photo late. So while you use the watchapp, it sends your " +
             "phone a tiny message every 7 seconds to keep Bluetooth quick. This uses a little battery, so it " +

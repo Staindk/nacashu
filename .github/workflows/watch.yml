@@ -33,7 +33,11 @@ jobs:
           pebble sdk install latest
       - name: Build watchapp
         working-directory: watch
-        run: pebble build
+        run: |
+          pebble build
+          # The Pebble app treats a pbw below manifestVersion 2 as a legacy app that gets old default
+          # permissions without asking. Make sure ours declares its permissions (see issue 46).
+          jq -e '.manifestVersion == 2 and .usesPermissions == []' build/appinfo.json
       - uses: actions/upload-artifact@v4
         with:
           name: nacashu-watchapp

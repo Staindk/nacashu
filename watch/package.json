@@ -8,6 +8,8 @@
     "displayName": "Nacashu",
     "uuid": "24258afb-b38c-4325-a2ca-aad66022a81a",
     "sdkVersion": "3",
+    "manifestVersion": 2,
+    "usesPermissions": [],
     "enableMultiJS": true,
     "targetPlatforms": [
       "emery",
