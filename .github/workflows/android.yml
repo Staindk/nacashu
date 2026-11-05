@@ -12,6 +12,10 @@ on:
       - 'docs/emery-1-ready.png'
   workflow_dispatch:
 
+# Read-only token: this workflow only builds and uploads artifacts.
+permissions:
+  contents: read
+
 jobs:
   android:
     runs-on: ubuntu-latest
