@@ -87,6 +87,10 @@ See [TESTING.md](TESTING.md).
 
 - **Shutter detection.** Pixel Camera works out of the box. For other camera apps, choose the camera in Nacashu, tap **Set shutter button**, and tap the shutter once on the see-through layer. Nacashu remembers that button, or just that spot on the screen if the camera doesn't expose the button. Please share the view IDs of other cameras (TESTING.md shows how) so they can work out of the box too.
 
+## License
+
+Nacashu is licensed under the [Apache License 2.0](LICENSE).
+
 ## Trademarks
 
 Pebble is a trademark of its owner. Nacashu is an independent project and isn't affiliated with or endorsed by Core Devices.
