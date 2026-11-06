@@ -7,7 +7,7 @@
 # from QEMU's monitor, about 10 a second, and each screen is kept for as long as it was shown, so a
 # screen that's only up briefly (like 3/3 before Done) isn't missed.
 import json, os, signal, socket, sys, tempfile, threading, time
-from PIL import Image
+from PIL import Image, ImageChops
 from libpebble2.communication import PebbleConnection
 from libpebble2.communication.transports.qemu import QemuTransport, MessageTargetQemu
 from libpebble2.communication.transports.qemu.protocol import QemuButton
@@ -90,7 +90,7 @@ time.sleep(6)
 # Steps, in seconds from the start: show the time, timer 0 -> 3, photos 1 -> 3, shutter.
 steps = [(2, QemuButton.Button.Up), (3, QemuButton.Button.Down), (4, QemuButton.Button.Select)]
 length = 13  # Countdown, 3 photos and "Done" for a couple of seconds.
-frames = []  # [image, seconds shown]
+shots = []
 start = time.time()
 tick = 0
 while tick < length * FPS:
@@ -98,10 +98,32 @@ while tick < length * FPS:
     time.sleep(max(0, t - time.time()))
     if steps and time.time() - start >= steps[0][0]:
         click(steps.pop(0)[1])
-    image = grab()
+    shots.append(grab())
     tick += 1
+
+
+# The emulator shakes the screen a pixel or two when the watch vibrates. Move each frame back to
+# where it lines up best with the first one, filling the uncovered edge from the first frame.
+def steady(image, first, reach=3):
+    w, h = image.size
+    best = None
+    for dy in range(-reach, reach + 1):
+        for dx in range(-reach, reach + 1):
+            moved = first.copy()
+            moved.paste(image.crop((max(0, dx), max(0, dy), w + min(0, dx), h + min(0, dy))),
+                        (max(0, -dx), max(0, -dy)))
+            changed = sum(ImageChops.difference(moved, first).convert('L').histogram()[1:])
+            if best is None or changed < best[0]:
+                best = (changed, moved)
+    return best[1]
+
+
+frames = []  # [image, seconds shown]
+for image in shots:
     if not set(image.getdata()) <= LIT_COLOURS:
         image = None  # The backlight was fading, so this frame is between two brightnesses.
+    else:
+        image = steady(image, shots[0])
     if frames and (image is None or image.tobytes() == frames[-1][0].tobytes()):
         frames[-1][1] += 1 / FPS
     elif image is not None:
