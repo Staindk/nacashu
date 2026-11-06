@@ -67,10 +67,21 @@ jobs:
             pebble kill
             echo "$platform: $((SECONDS - start))s"
           done
+      - name: Record store GIF
+        env:
+          DISPLAY: ':99'
+        run: |
+          # The appstore shows GIFs as screenshots. record_gif.py plays the phone, presses the
+          # buttons and joins the frames; see the comment at its top.
+          pin() { TZ=UTC faketime -f '@2026-01-01 10:09:00' "$@"; }
+          pin pebble install --emulator emery watch/build/*.pbw
+          sleep 2
+          pin ~/.local/share/uv/tools/pebble-tool/bin/python watch/tools/record_gif.py emery shots/emery-animation.gif
+          pebble kill
       - uses: actions/upload-artifact@v4
         with:
           name: screenshots
-          path: shots/*.png
+          path: shots/*
       - name: Commit changed screenshots to the PR
         # Only on PRs from this repo: fork PRs get a read-only token.
         if: github.event_name == 'pull_request'
