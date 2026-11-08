@@ -17,6 +17,7 @@ pixel_font, sans_font = sys.argv[1], sys.argv[2]
 out = Path(sys.argv[3]) if len(sys.argv) > 3 else ROOT / "fastlane/metadata/android/en-US/images"
 
 BLACK, WHITE, GREY, DARK = (0, 0, 0), (255, 255, 255), (85, 85, 85), (51, 51, 51)
+LIGHT = (170, 170, 170)
 BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
 
@@ -69,6 +70,80 @@ def scene(w, h, cell):
     return small.resize((gw * cell, gh * cell), Image.NEAREST)
 
 
+def family(w, h, cell):
+    """A family of four as pictograms (round heads, A-line dresses, a cap, a bob, a bun), holding
+    hands on a hill, with a big white sun behind them. Drawn on a grid of cell px squares."""
+    gw, gh = w // cell, h // cell
+    small = Image.new("RGB", (gw, gh), LIGHT)
+    px, d = small.load(), ImageDraw.Draw(small)
+    for y in range(36):  # dithered sky fading into the flat pale band behind the people
+        for x in range(gw):
+            px[x, y] = LIGHT if 0.05 + 0.95 * y / 36 > BAYER[y % 4][x % 4] / 16 else GREY
+
+    def disc(cx, cy, r, colour=BLACK):
+        d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=colour)
+
+    def box(x0, y0, x1, y1):
+        d.rectangle((x0, y0, x1, y1), fill=BLACK)
+
+    def arm(a, b):
+        d.line((a[0], a[1], b[0], b[1]), fill=BLACK, width=2)
+
+    def ground(x):
+        return 94 + int(((x - 33) / 33) ** 2 * 5)
+
+    disc(32, 60, 20, WHITE)
+    for x in range(gw):
+        d.line((x, ground(x), x, gh), fill=BLACK)
+
+    def person(cx, kind, height):
+        """Feet planted 3 cells into the hill. Returns the left and right shoulder points."""
+        r, body, shoulder, hem = {"man": (5, 0.40, 6, 6), "woman": (5, 0.48, 3, 7),
+                                  "boy": (4, 0.40, 4, 4), "girl": (3, 0.44, 2, 5)}[kind]
+        feet = ground(cx) + 3
+        head = feet - height + r
+        top = head + r + 2  # a 1-cell gap between head and body, as on a sign
+        legs = top + round(height * body)
+        disc(cx, head, r)
+        if kind == "boy":  # cap: flat crown, 2-cell brim, a gap under the brim
+            box(cx - r, head - r - 1, cx + r, head - 2)
+            box(cx, head - 3, cx + r + 3, head - 2)
+            d.rectangle((cx + r + 1, head - 1, cx + r + 3, head), fill=LIGHT)
+        if kind == "woman":  # bun
+            d.ellipse((cx - 3, head - r - 4, cx + 1, head - r), fill=BLACK)
+        if kind == "girl":  # bob
+            d.rounded_rectangle((cx - r - 1, head - r + 1, cx + r + 1, head + r - 1), radius=2, fill=BLACK)
+        if kind in ("man", "boy"):
+            d.rounded_rectangle((cx - shoulder, top, cx + shoulder, legs), radius=2, fill=BLACK)
+            box(cx - shoulder + 1, legs, cx - 2 + (kind == "boy"), feet)
+            box(cx + 1 + (kind != "boy"), legs, cx + shoulder - 1, feet)
+        else:
+            for i in range(legs - top + 1):
+                half = shoulder + (hem - shoulder) * i / (legs - top)
+                box(round(cx - half), top + i, round(cx + half), top + i)
+            if kind == "woman":
+                box(cx - 3, legs, cx - 2, feet)
+                box(cx + 2, legs, cx + 3, feet)
+            else:
+                box(cx - 2, legs, cx - 2, feet)
+                box(cx + 2, legs, cx + 2, feet)
+        return (cx - shoulder, top + 1), (cx + shoulder, top + 1)
+
+    people = [person(11, "girl", 29), person(24, "man", 50), person(41, "woman", 46), person(57, "boy", 32)]
+    for (_, right), (left, _) in zip(people, people[1:]):  # hand in hand
+        hx, hy = (right[0] + left[0]) // 2, max(right[1], left[1]) + 9
+        arm((right[0] + 1, right[1]), (hx, hy))
+        arm((left[0] - 1, left[1]), (hx, hy))
+        box(hx - 1, hy - 1, hx + 1, hy + 1)
+    (x, y), _ = people[0]  # the free arms angle out from the shoulder
+    arm((x - 1, y + 1), (x - 5, y + 7))
+    box(x - 6, y + 7, x - 4, y + 9)
+    _, (x, y) = people[-1]
+    arm((x + 1, y + 1), (x + 4, y + 9))
+    box(x + 3, y + 9, x + 5, y + 11)
+    return small.resize((gw * cell, gh * cell), Image.NEAREST)
+
+
 def ink_left(text, f):
     """How far right of x the first lit pixel of text lands (the font's left side bearing)."""
     probe = Image.new("L", (int(f.getlength(text)) + 200, f.size * 2))
@@ -81,7 +156,9 @@ def centred(d, y, text, f, w, fill=WHITE):
     d.text((x, y), text, font=f, fill=fill)
 
 
-def phone_screenshot(lines, shot, path, round_screen=False):
+def phone_screenshot(lines, shot, path, round_screen=False, view=None):
+    """view draws the camera viewfinder. With one, the watch is drawn smaller in the bottom right
+    corner (and the shutter moves left) so more of the view shows."""
     W, H = 1080, 1920  # 9:16; Play rejects anything longer than 2:1
     img = Image.new("RGB", (W, H), BLACK)
     d = ImageDraw.Draw(img)
@@ -91,17 +168,22 @@ def phone_screenshot(lines, shot, path, round_screen=False):
     # Phone running the camera app.
     px, py, pw, ph = 160, 390, 760, 1470
     d.rounded_rectangle((px, py, px + pw, py + ph), radius=70, fill=DARK)
-    view = scene(pw - 60, ph - 60, 15)
+    small_watch = view is not None
+    view = view(pw - 60, ph - 60, 10) if small_watch else scene(pw - 60, ph - 60, 15)
     mask = Image.new("L", view.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, view.width - 1, view.height - 1), radius=45, fill=255)
     img.paste(view, (px + 30, py + 30), mask)
-    cx, cy = px + pw // 2, py + ph - 170
+    cx, cy = px + pw // 2 - (80 if small_watch else 0), py + ph - 170
     d.ellipse((cx - 90, cy - 90, cx + 90, cy + 90), fill=WHITE)
     d.ellipse((cx - 72, cy - 72, cx + 72, cy + 72), fill=BLACK)
     d.ellipse((cx - 62, cy - 62, cx + 62, cy + 62), fill=WHITE)
     # The watch, overlapping the phone's right edge.
-    w = watch(screen(shot, 3), 3, round_screen)
-    img.paste(w, (W - w.width - 10, py + ph - w.height - 300), w)
+    if small_watch:
+        w = watch(screen(shot, 2), 2, round_screen)
+        img.paste(w, (W - w.width - 20, H - w.height - 30), w)
+    else:
+        w = watch(screen(shot, 3), 3, round_screen)
+        img.paste(w, (W - w.width - 10, py + ph - w.height - 300), w)
     img.save(path, optimize=True)
 
 
@@ -197,7 +279,7 @@ out.mkdir(parents=True, exist_ok=True)
 (out / "phoneScreenshots").mkdir(exist_ok=True)
 Image.open(DOCS / "icon.png").convert("RGB").resize((512, 512), Image.NEAREST).save(out / "icon.png", optimize=True)
 feature_graphic(out / "featureGraphic.png")
-phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png")
+phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png", view=family)
 phone_screenshot(["YOUR PHONE'S", "NATIVE CAMERA"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", round_screen=True)
 def pebble_icon(size, path, invert=False):
     """The 32x32 icon at the biggest whole-number scale that fits, centred on a square of size.
