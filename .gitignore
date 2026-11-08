@@ -5,3 +5,4 @@ builds/
 *.keystore
 *.jks
 local.properties
+__pycache__/
