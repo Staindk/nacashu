@@ -158,7 +158,7 @@ def centred(d, y, text, f, w, fill=WHITE):
 
 def phone_screenshot(lines, shot, path, round_screen=False, view=None):
     """view draws the camera viewfinder. With one, the watch is drawn smaller in the bottom right
-    corner (and the shutter moves left) so more of the view shows."""
+    corner, in front of the shutter, so more of the view shows."""
     W, H = 1080, 1920  # 9:16; Play rejects anything longer than 2:1
     img = Image.new("RGB", (W, H), BLACK)
     d = ImageDraw.Draw(img)
@@ -173,7 +173,7 @@ def phone_screenshot(lines, shot, path, round_screen=False, view=None):
     mask = Image.new("L", view.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, view.width - 1, view.height - 1), radius=45, fill=255)
     img.paste(view, (px + 30, py + 30), mask)
-    cx, cy = px + pw // 2 - (80 if small_watch else 0), py + ph - 170
+    cx, cy = px + pw // 2, py + ph - 170  # centred, as on every phone; a small watch may cover part of it
     d.ellipse((cx - 90, cy - 90, cx + 90, cy + 90), fill=WHITE)
     d.ellipse((cx - 72, cy - 72, cx + 72, cy + 72), fill=BLACK)
     d.ellipse((cx - 62, cy - 62, cx + 62, cy + 62), fill=WHITE)
