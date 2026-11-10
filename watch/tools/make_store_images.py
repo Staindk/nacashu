@@ -50,7 +50,7 @@ def watch(img, scale, round_screen=False, pad=None):
 
 def family(w, h, cell):
     """A family of four as pictograms (round heads, A-line dresses, a cap, a bob, a bun), holding
-    hands on a hill, with a big white sun behind them. The man wears the watch (a grey band).
+    hands on a hill, with a big white sun behind them. The man wears the watch (grey pixels on his arm).
     Drawn on a grid of cell px squares."""
     gw, gh = w // cell, h // cell
     small = Image.new("RGB", (gw, gh), LIGHT)
@@ -114,10 +114,13 @@ def family(w, h, cell):
         arm((right[0] + 1, right[1]), (hx, hy))
         arm((left[0] - 1, left[1]), (hx, hy))
         box(hx - 1, hy - 1, hx + 1, hy + 1)
-        if i == 1:  # the man wears the watch: a grey band 3 rows up his right arm from the clasp
-            t = 1 - 3 / (hy - right[1])
-            wx, wy = round(right[0] + 1 + (hx - right[0] - 1) * t), round(right[1] + (hy - right[1]) * t)
-            d.rectangle((wx - 2, wy - 1, wx + 1, wy), fill=GREY)
+        if i == 1:  # the man wears the watch: his right arm's own pixels go grey, 4 to 6 rows above the clasp
+            mask = Image.new("1", small.size)
+            ImageDraw.Draw(mask).line((right[0] + 1, right[1], hx, hy), fill=1, width=2)
+            for y in range(hy - 6, hy - 3):
+                for x in range(right[0] + 1, hx + 1):
+                    if mask.getpixel((x, y)):
+                        px[x, y] = GREY
     (x, y), _ = people[0]  # the free arms angle out from the shoulder
     arm((x - 1, y + 1), (x - 5, y + 7))
     box(x - 6, y + 7, x - 4, y + 9)
