@@ -7,9 +7,10 @@
 # Also draws docs/header.png (top of the README) and docs/pebble-banner.png (720x320, for the
 # Pebble appstore listing), and the appstore's icons: pebble-icon-80.png and pebble-icon-144.png
 # (watchapp) and inverted-pebble-companion-icon-144.png (the Android companion, drawn inverted).
+import math
 import sys
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCS = ROOT / "docs"
@@ -45,29 +46,6 @@ def watch(img, scale, round_screen=False, pad=None):
         d.rounded_rectangle((0, 0, w - 1, h - 1), radius=4 * scale, fill=DARK)
         body.paste(img, (pad, pad))
     return body
-
-
-def scene(w, h, cell):
-    """A dithered camera viewfinder: bright sky fading down, a grey hill, dark ground."""
-    gw, gh = w // cell, h // cell
-    small = Image.new("RGB", (gw, gh), BLACK)
-    px = small.load()
-    hill_top = int(gh * 0.48)
-    for y in range(gh):
-        for x in range(gw):
-            t = BAYER[y % 4][x % 4] / 16
-            if y < gh * 0.45:
-                level = 1 - y / (gh * 0.45)
-                px[x, y] = WHITE if level > t else BLACK
-            ground = gh * 0.7
-            hx = (x - gw * 0.3) / (gw * 0.35)
-            hill = hill_top + int(gh * 0.12 * hx * hx)
-            if y >= hill and y < ground:
-                px[x, y] = GREY
-            if y >= ground:
-                level = 0.5 - (y - ground) / (gh - ground) * 0.5
-                px[x, y] = GREY if level > t else (25, 25, 25)
-    return small.resize((gw * cell, gh * cell), Image.NEAREST)
 
 
 def family(w, h, cell):
@@ -144,6 +122,127 @@ def family(w, h, cell):
     return small.resize((gw * cell, gh * cell), Image.NEAREST)
 
 
+def couple(w, h, cell):
+    """Two pictograms (a man and a woman, as in family()) holding hands and waving at the camera
+    a few metres away, in front of a snowy mountain, the sun low on the left. Their shadows fall
+    towards the camera; white focus brackets frame them. Drawn on a grid of cell px squares."""
+    gw, gh = w // cell, h // cell
+    small = Image.new("RGB", (gw, gh), LIGHT)
+    px, d = small.load(), ImageDraw.Draw(small)
+    horizon, feet = 80, 94
+
+    def dith(x, y, level, hi, lo):
+        px[x, y] = hi if level > BAYER[y % 4][x % 4] / 16 else lo
+
+    def box(x0, y0, x1, y1, colour=BLACK, draw=d):
+        draw.rectangle((min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)), fill=colour)
+
+    for y in range(gh):  # sky: sparse grey dots clearing to flat pale grey
+        for x in range(gw):
+            dith(x, y, 0.82 + 0.18 * y / (horizon - 30), LIGHT, GREY)
+    sun_x, sun_y, sun_r = 12, 14, 6
+    d.ellipse((sun_x - sun_r, sun_y - sun_r, sun_x + sun_r, sun_y + sun_r), fill=WHITE)
+    for x in range(gw):  # far ridge
+        for y in range(horizon - 12 - int(4 * math.sin(x / 6 + 1) + 3 * math.sin(x / 2.7)), horizon + 1):
+            dith(x, y, 0.85, LIGHT, GREY)
+    peak_x, peak_y, spread, snow = 38, 18, 44, 16  # the mountain: snow cap, lit left face, shaded right
+    for x in range(gw):
+        t = abs(x - peak_x) / spread
+        if t > 1:
+            continue
+        jag = 1.5 * math.sin(x * 1.3 + 0.7) + math.sin(x * 2.9 + 1.4) if t > 0.08 else 0
+        for y in range(max(0, int(peak_y + (horizon - peak_y) * t ** 1.2 + jag)), horizon + 1):
+            lit = x <= peak_x + (y - peak_y) * 0.35
+            if y < peak_y + snow + int(2 * math.sin(x * 1.1 + 0.7)):
+                px[x, y] = WHITE if lit or BAYER[y % 4][x % 4] < 8 else LIGHT
+            elif lit:
+                dith(x, y, 0.62, LIGHT, GREY)
+            else:
+                dith(x, y, 0.55, GREY, DARK)
+    for y in range(horizon + 1, gh):  # meadow, darkening towards the camera
+        for x in range(gw):
+            if y == horizon + 1:
+                px[x, y] = GREY
+            elif y < horizon + 22:
+                dith(x, y, 0.8 - (y - horizon) / 45, LIGHT, GREY)
+            else:
+                dith(x, y, 0.5, GREY, DARK)
+
+    man, woman, clasp_x = 20, 36, 28
+
+    def people(draw):
+        """Limbs are 2 cells thick."""
+        def row(x, y, side):  # one 2-cell slice of a slanted arm
+            box(x, y, x + side, y, draw=draw)
+
+        def wave(x, y, side):  # upper arm up and out, then the forearm up beside the head
+            elbow = (x + side * 3, y - 2)
+            for a, b in ((((x, y) if side > 0 else (x - 1, y)), elbow), (elbow, (elbow[0] + side * 2, elbow[1] - 6))):
+                n = max(abs(b[0] - a[0]), abs(b[1] - a[1]))
+                for i in range(n + 1):
+                    cx, cy = round(a[0] + (b[0] - a[0]) * i / n), round(a[1] + (b[1] - a[1]) * i / n)
+                    box(cx, cy, cx + 1, cy + 1, draw=draw)
+
+        # The man: round head, sloped shoulders, rectangle torso, two legs.
+        head, top = feet - 27 + 3, feet - 27 + 8
+        legs = top + round(27 * 0.42)
+        draw.ellipse((man - 3, head - 3, man + 3, head + 3), fill=BLACK)
+        box(man - 2, top, man + 2, top, draw=draw)
+        box(man - 3, top + 1, man + 3, top + 1, draw=draw)
+        box(man - 4, top + 2, man + 4, legs, draw=draw)
+        box(man - 3, legs, man - 1, feet, draw=draw)
+        box(man + 1, legs, man + 3, feet, draw=draw)
+        wave(man - 5, top + 3, -1)
+        # The woman: round head, A-line dress, two legs.
+        w_head, w_top = feet - 25 + 3, feet - 25 + 8
+        w_legs = w_top + round(25 * 0.5)
+        draw.ellipse((woman - 3, w_head - 3, woman + 3, w_head + 3), fill=BLACK)
+        rows = w_legs - w_top
+        for i in range(rows + 1):
+            half = 2 + 4 * i / rows
+            box(round(woman - half), w_top + i, round(woman + half), w_top + i, draw=draw)
+        box(woman - 3, w_legs, woman - 2, feet, draw=draw)
+        box(woman + 2, w_legs, woman + 3, feet, draw=draw)
+        wave(woman + 3, w_top + 1, 1)
+        # Hand in hand: his arm runs straight from the shoulder to the clasp, hers follows her dress.
+        clasp_y = legs - 1
+        n = clasp_y - (top + 2)
+        for i in range(n + 1):
+            row(round(man + 5 + (clasp_x - man - 6) * i / n), top + 2 + i, 1)
+        box(clasp_x - 1, clasp_y, clasp_x, clasp_y + 1, draw=draw)
+        box(woman - 2, w_top, woman - 4, w_top + 1, draw=draw)
+        for i in range(clasp_y - w_top + 2):
+            x = round(woman - (4 + 4 * i / rows)); row(x, w_top + i, -1)
+        box(x, clasp_y, clasp_x, clasp_y + 1, draw=draw)
+
+    # A lighter halo around the pair keeps their arms readable against the dither.
+    mask = Image.new("RGB", (gw, gh), WHITE)
+    people(ImageDraw.Draw(mask))
+    ink = mask.convert("L").point(lambda v: 255 if v < 128 else 0)
+    halo = ink.filter(ImageFilter.MaxFilter(5)).load()
+    for y in range(feet + 1):
+        for x in range(gw):
+            if halo[x, y] and px[x, y] != WHITE:
+                dith(x, y, 0.88, LIGHT, GREY)
+    for cx in (man, woman):  # long shadows, cast away from the sun: towards the camera and right
+        for r in range(6):
+            for x in range(cx - 3 + 2 * r, cx - 3 + 2 * r + max(2, 7 - r // 2)):
+                px[x, feet + 1 + r] = GREY
+    people(d)
+    # Focus brackets around the pair, kept clear of the watch in the corner.
+    x0, y0, x1, y1 = ink.getbbox()
+    x0, y0, x1, y1 = max(1, x0 - 5), max(1, y0 - 5), min(gw - 2, x1 + 5), feet + 3
+    right = x1 - 5
+    while math.hypot(x1 - 60, y1 - 120) < 31 and x1 > right:
+        x1 -= 1
+    while math.hypot(x1 - 60, y1 - 120) < 31:
+        y1 -= 1
+    for cx, cy, sx, sy in ((x0, y0, 1, 1), (x1, y0, -1, 1), (x0, y1, 1, -1), (x1, y1, -1, -1)):
+        box(cx, cy, cx + sx * 4, cy, WHITE)
+        box(cx, cy, cx, cy + sy * 4, WHITE)
+    return small.resize((gw * cell, gh * cell), Image.NEAREST)
+
+
 def ink_left(text, f):
     """How far right of x the first lit pixel of text lands (the font's left side bearing)."""
     probe = Image.new("L", (int(f.getlength(text)) + 200, f.size * 2))
@@ -156,34 +255,30 @@ def centred(d, y, text, f, w, fill=WHITE):
     d.text((x, y), text, font=f, fill=fill)
 
 
-def phone_screenshot(lines, shot, path, round_screen=False, view=None):
-    """view draws the camera viewfinder. With one, the watch is drawn smaller in the bottom right
-    corner, in front of the shutter, so more of the view shows."""
+def phone_screenshot(lines, shot, path, view, watch_scale, round_screen=False):
+    """A phone running its camera app, view drawing the viewfinder on 10 px cells, with the watch
+    in the bottom right corner, in front of the shutter. watch_scale may be fractional, so the
+    square and round watches can look the same size."""
     W, H = 1080, 1920  # 9:16; Play rejects anything longer than 2:1
     img = Image.new("RGB", (W, H), BLACK)
     d = ImageDraw.Draw(img)
     big = font(pixel_font, 96)
     for i, line in enumerate(lines):
         centred(d, 110 + i * 120, line, big, W)
-    # Phone running the camera app.
     px, py, pw, ph = 160, 390, 760, 1470
     d.rounded_rectangle((px, py, px + pw, py + ph), radius=70, fill=DARK)
-    small_watch = view is not None
-    view = view(pw - 60, ph - 60, 10) if small_watch else scene(pw - 60, ph - 60, 15)
+    view = view(pw - 60, ph - 60, 10)
     mask = Image.new("L", view.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, view.width - 1, view.height - 1), radius=45, fill=255)
     img.paste(view, (px + 30, py + 30), mask)
-    cx, cy = px + pw // 2, py + ph - 170  # centred, as on every phone; a small watch may cover part of it
+    cx, cy = px + pw // 2, py + ph - 170  # the shutter, centred as on every phone
     d.ellipse((cx - 90, cy - 90, cx + 90, cy + 90), fill=WHITE)
     d.ellipse((cx - 72, cy - 72, cx + 72, cy + 72), fill=BLACK)
     d.ellipse((cx - 62, cy - 62, cx + 62, cy + 62), fill=WHITE)
-    # The watch, overlapping the phone's right edge.
-    if small_watch:
-        w = watch(screen(shot, 2), 2, round_screen)
-        img.paste(w, (W - w.width - 20, H - w.height - 30), w)
-    else:
-        w = watch(screen(shot, 3), 3, round_screen)
-        img.paste(w, (W - w.width - 10, py + ph - w.height - 300), w)
+    shot = screen(shot, 1)
+    shot = shot.resize((round(shot.width * watch_scale), round(shot.height * watch_scale)), Image.NEAREST)
+    w = watch(shot, round(watch_scale), round_screen, pad=round(6 * watch_scale))
+    img.paste(w, (W - w.width - 20, H - w.height - 30), w)
     img.save(path, optimize=True)
 
 
@@ -279,8 +374,9 @@ out.mkdir(parents=True, exist_ok=True)
 (out / "phoneScreenshots").mkdir(exist_ok=True)
 Image.open(DOCS / "icon.png").convert("RGB").resize((512, 512), Image.NEAREST).save(out / "icon.png", optimize=True)
 feature_graphic(out / "featureGraphic.png")
-phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png", view=family)
-phone_screenshot(["YOUR PHONE'S", "NATIVE CAMERA"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", round_screen=True)
+phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png", family, 2.25)
+phone_screenshot(["YOUR PHONE'S", "NATIVE CAMERA"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", couple, 1.85,
+                 round_screen=True)
 def pebble_icon(size, path, invert=False):
     """The 32x32 icon at the biggest whole-number scale that fits, centred on a square of size.
     invert swaps black and white (the grey straps stay grey)."""
