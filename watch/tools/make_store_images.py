@@ -50,7 +50,8 @@ def watch(img, scale, round_screen=False, pad=None):
 
 def family(w, h, cell):
     """A family of four as pictograms (round heads, A-line dresses, a cap, a bob, a bun), holding
-    hands on a hill, with a big white sun behind them. Drawn on a grid of cell px squares."""
+    hands on a hill, with a big white sun behind them. The man wears the watch (a grey band).
+    Drawn on a grid of cell px squares."""
     gw, gh = w // cell, h // cell
     small = Image.new("RGB", (gw, gh), LIGHT)
     px, d = small.load(), ImageDraw.Draw(small)
@@ -108,11 +109,15 @@ def family(w, h, cell):
         return (cx - shoulder, top + 1), (cx + shoulder, top + 1)
 
     people = [person(11, "girl", 29), person(24, "man", 50), person(41, "woman", 46), person(57, "boy", 32)]
-    for (_, right), (left, _) in zip(people, people[1:]):  # hand in hand
+    for i, ((_, right), (left, _)) in enumerate(zip(people, people[1:])):  # hand in hand
         hx, hy = (right[0] + left[0]) // 2, max(right[1], left[1]) + 9
         arm((right[0] + 1, right[1]), (hx, hy))
         arm((left[0] - 1, left[1]), (hx, hy))
         box(hx - 1, hy - 1, hx + 1, hy + 1)
+        if i == 1:  # the man wears the watch: a grey band 3 rows up his right arm from the clasp
+            t = 1 - 3 / (hy - right[1])
+            wx, wy = round(right[0] + 1 + (hx - right[0] - 1) * t), round(right[1] + (hy - right[1]) * t)
+            d.rectangle((wx - 2, wy - 1, wx + 1, wy), fill=GREY)
     (x, y), _ = people[0]  # the free arms angle out from the shoulder
     arm((x - 1, y + 1), (x - 5, y + 7))
     box(x - 6, y + 7, x - 4, y + 9)
@@ -427,7 +432,7 @@ out.mkdir(parents=True, exist_ok=True)
 Image.open(DOCS / "icon.png").convert("RGB").resize((512, 512), Image.NEAREST).save(out / "icon.png", optimize=True)
 feature_graphic(out / "featureGraphic.png")
 remote_shutter(out / "phoneScreenshots/1-remote-shutter.png")
-phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/2-snap.png", family, 2.25)
+phone_screenshot(["TAKE PHOTOS", "FROM YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/2-take-photos.png", family, 2.25)
 phone_screenshot(["YOUR PHONE'S", "NATIVE CAMERA"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", couple, 1.85,
                  round_screen=True)
 def pebble_icon(size, path, invert=False):
