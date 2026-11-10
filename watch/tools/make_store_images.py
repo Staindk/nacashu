@@ -314,12 +314,12 @@ def remote_shutter(path):
     wx, wy = W - w.width - 100, 410
     img.paste(w, (wx, wy), w)
     bx, by = wx + w.width, wy + w.height // 2  # SELECT, the right middle button, being pressed
-    for a in (-70, -38, -6):
+    for a in (-40, 0, 40):  # click marks, fanned evenly round the button
         t = math.radians(a)
-        d.line((bx + 26 * math.cos(t), by - 6 + 26 * math.sin(t), bx + 70 * math.cos(t), by - 6 + 70 * math.sin(t)),
+        d.line((bx + 26 * math.cos(t), by + 26 * math.sin(t), bx + 70 * math.cos(t), by + 70 * math.sin(t)),
                fill=WHITE, width=11)
     # Square dots along a curve from the button, down the right edge, to the phone's shutter.
-    (x0, y0), (x1, y1), (x2, y2) = (bx + 16, by + 34), (W - 30, cy - 160), (cx + r + 78, cy)
+    (x0, y0), (x1, y1), (x2, y2) = (bx + 14, by + 40), (W - 30, cy - 160), (cx + r + 78, cy)
     n = int((math.hypot(x1 - x0, y1 - y0) + math.hypot(x2 - x1, y2 - y1)) / 30)
     for i in range(1, n):
         t = i / n
