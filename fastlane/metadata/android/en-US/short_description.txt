@@ -1,1 +1,1 @@
-Use your Pebble watch as the shutter for your phone's own camera app.
+Use your Pebble watch as the shutter for your phone's native camera app.

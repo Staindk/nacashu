@@ -1,27 +1,28 @@
-Nacashu turns your Pebble watch into a remote shutter for your phone's own camera app. Your camera app still takes the photo, so you keep all of its processing: HDR, Night Sight, portrait mode and the rest.
+Nacashu turns your Pebble watch into a remote shutter for your phone's native camera app. Your camera app takes the photo, so you keep all of its processing: HDR, Night Sight, portrait mode and the rest.
 
 On the watch:
-• SELECT takes a photo (press any button to stop a countdown or a run of photos)
+• SELECT takes a photo
 • UP picks a timer: 0, 3, 5, 10 or 30 seconds
-• DOWN picks how many photos SELECT takes: 1, 3, 5, 10 or ∞, about a second apart
-• Hold UP to go back to no timer and one photo, hold DOWN to bring the camera to the front
+• DOWN picks how many photos SELECT takes: 1, 3, 5, 10 or ∞, each photo about a second apart
+• Hold UP to reset (go back to no timer and one photo), hold DOWN to bring the camera to the front
+
 The watch vibrates and shows whether the photo was taken. On Pebble Time 2 and Core 2 Duo, optional sounds tick down the timer and click when the photo is taken.
 
 Set Nacashu as a Quick Launch app on the watch and turn on "Take photo when quick launching" to take a photo from any watchface.
 
-Works with Pixel Camera out of the box. For other camera apps, use "Set shutter button" once: tap your camera's shutter and Nacashu remembers it.
+Works with Pixel Camera out of the box. For other phones/camera apps, run "Set shutter button" once during initial setup - tap your camera's shutter and Nacashu remembers it.
 
 You need the Nacashu watchapp from the Pebble app store, and the Pebble app from Core Devices.
 
 How it works
-Nacashu uses Android's accessibility service to press the shutter button in your camera app, the same way a screen reader presses buttons. It reads your chosen camera app's screen only to find the shutter, and only when your watch asks. The app explains this and asks you to agree before it opens Android's accessibility settings.
+Nacashu uses Android's accessibility service to press the shutter button in your camera app, the same way a screen reader presses buttons. It reads your chosen camera app's screen only to find the shutter, and presses the shutter only when your watch asks. The app explains this and asks you to agree before it opens Android's accessibility settings.
 
 Privacy
-• No internet permission: Nacashu can't send anything off your phone.
-• No accounts, ads or tracking.
-• Settings stay on your phone and are deleted when you uninstall.
+• No internet permission: Nacashu can't send anything off your phone
+• No accounts, ads or tracking
+• Settings stay on your phone and are deleted when you uninstall
 
 Open source
-Nacashu is open source, so anyone can check what it does. Source code, issues and the privacy policy are on GitHub: https://github.com/Staindk/nacashu
+Nacashu is open source, so anyone can check what it does. The logic that builds into the Pebble watchapp and the Android app is intentionally kept simple and auditable (while some scripts that e.g. generate images are less auditable, but have no effect on the built apps). Source code, issues and the privacy policy are on GitHub: https://github.com/Staindk/nacashu
 
 Nacashu is not made by or affiliated with Core Devices or Pebble.
