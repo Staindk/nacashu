@@ -255,26 +255,33 @@ def centred(d, y, text, f, w, fill=WHITE):
     d.text((x, y), text, font=f, fill=fill)
 
 
+def camera_phone(img, x, y, cell, view):
+    """A phone running its camera app, its corner at x, y: view draws the 70x141 cell viewfinder on
+    cell px squares, and the bezel, corners and shutter scale with it (cell 10 is 760x1470).
+    Returns the shutter's centre and radius."""
+    d = ImageDraw.Draw(img)
+    pw, ph = 76 * cell, 147 * cell
+    d.rounded_rectangle((x, y, x + pw, y + ph), radius=7 * cell, fill=DARK)
+    view = view(70 * cell, 141 * cell, cell)
+    mask = Image.new("L", view.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, view.width - 1, view.height - 1), radius=round(4.5 * cell), fill=255)
+    img.paste(view, (x + 3 * cell, y + 3 * cell), mask)
+    cx, cy, r = x + pw // 2, y + ph - 17 * cell, 9 * cell  # the shutter, centred as on every phone
+    for radius, colour in ((r, WHITE), (round(7.2 * cell), BLACK), (round(6.2 * cell), WHITE)):
+        d.ellipse((cx - radius, cy - radius, cx + radius, cy + radius), fill=colour)
+    return cx, cy, r
+
+
 def phone_screenshot(lines, shot, path, view, watch_scale, round_screen=False):
-    """A phone running its camera app, view drawing the viewfinder on 10 px cells, with the watch
-    in the bottom right corner, in front of the shutter. watch_scale may be fractional, so the
-    square and round watches can look the same size."""
+    """The camera phone with the watch in the bottom right corner, in front of the shutter.
+    watch_scale may be fractional, so the square and round watches can look the same size."""
     W, H = 1080, 1920  # 9:16; Play rejects anything longer than 2:1
     img = Image.new("RGB", (W, H), BLACK)
     d = ImageDraw.Draw(img)
     big = font(pixel_font, 96)
     for i, line in enumerate(lines):
         centred(d, 110 + i * 120, line, big, W)
-    px, py, pw, ph = 160, 390, 760, 1470
-    d.rounded_rectangle((px, py, px + pw, py + ph), radius=70, fill=DARK)
-    view = view(pw - 60, ph - 60, 10)
-    mask = Image.new("L", view.size, 0)
-    ImageDraw.Draw(mask).rounded_rectangle((0, 0, view.width - 1, view.height - 1), radius=45, fill=255)
-    img.paste(view, (px + 30, py + 30), mask)
-    cx, cy = px + pw // 2, py + ph - 170  # the shutter, centred as on every phone
-    d.ellipse((cx - 90, cy - 90, cx + 90, cy + 90), fill=WHITE)
-    d.ellipse((cx - 72, cy - 72, cx + 72, cy + 72), fill=BLACK)
-    d.ellipse((cx - 62, cy - 62, cx + 62, cy + 62), fill=WHITE)
+    camera_phone(img, 160, 390, 10, view)
     shot = screen(shot, 1)
     shot = shot.resize((round(shot.width * watch_scale), round(shot.height * watch_scale)), Image.NEAREST)
     w = watch(shot, round(watch_scale), round_screen, pad=round(6 * watch_scale))
@@ -282,12 +289,57 @@ def phone_screenshot(lines, shot, path, view, watch_scale, round_screen=False):
     img.save(path, optimize=True)
 
 
-def pixelated_watch(name, cell, shot_scale=1, strap_h=4):
+def remote_shutter(path):
+    """Screenshot 1: the Help screen's chunky watch, its face just a big shutter, with a dotted line
+    from its SELECT button (which fires the shutter) to the camera phone's shutter, on a grid of dots."""
+    W, H = 1080, 1920
+    img = Image.new("RGB", (W, H), BLACK)
+    d = ImageDraw.Draw(img)
+    for y in range(20, H, 40):  # a sparse grid of dark dots, like a pixel screen
+        for x in range(20, W, 40):
+            d.rectangle((x, y, x + 7, y + 7), fill=DARK)
+    big = font(pixel_font, 78)
+    centred(d, 100, "YOUR PHONE'S", big, W)
+    centred(d, 200, "REMOTE SHUTTER", big, W)
+    centred(d, 315, "FOR PEBBLE WATCHES", font(pixel_font, 50), W, fill=LIGHT)  # less prominent, per Pebble's trademark rules
+    cell = 9
+    cx, cy, r = camera_phone(img, 24, H - 147 * cell - 30, cell, couple)
+    # The watch in front of the phone, at 1.5x the Help screen's size: 15 px cells around a
+    # 300x342 face (emery at 1.5x) that shows only the shutter.
+    face = Image.new("RGB", (300, 342), BLACK)
+    fd = ImageDraw.Draw(face)
+    for radius, colour in ((99, WHITE), (84, BLACK), (74, WHITE)):
+        fd.ellipse((150 - radius, 171 - radius, 150 + radius, 171 + radius), fill=colour)
+    w = pixelated_watch(face, 15, gap=6)
+    wx, wy = W - w.width - 100, 410
+    img.paste(w, (wx, wy), w)
+    bx, by = wx + w.width, wy + w.height // 2  # SELECT, the right middle button, being pressed
+    for a in (-70, -38, -6):
+        t = math.radians(a)
+        d.line((bx + 26 * math.cos(t), by - 6 + 26 * math.sin(t), bx + 70 * math.cos(t), by - 6 + 70 * math.sin(t)),
+               fill=WHITE, width=11)
+    # Square dots along a curve from the button, down the right edge, to the phone's shutter.
+    (x0, y0), (x1, y1), (x2, y2) = (bx + 16, by + 34), (W - 30, cy - 160), (cx + r + 78, cy)
+    n = int((math.hypot(x1 - x0, y1 - y0) + math.hypot(x2 - x1, y2 - y1)) / 30)
+    for i in range(1, n):
+        t = i / n
+        x = (1 - t) ** 2 * x0 + 2 * (1 - t) * t * x1 + t * t * x2
+        y = (1 - t) ** 2 * y0 + 2 * (1 - t) * t * y1 + t * t * y2
+        d.rectangle((x - 7, y - 7, x + 7, y + 7), fill=WHITE)
+    for ring in (1, 2):  # the shutter going off: two dotted rings
+        radius = r + 30 * ring
+        count = int(2 * math.pi * radius / 26)
+        for i in range(count):
+            a = 2 * math.pi * i / count
+            x, y = cx + radius * math.cos(a), cy + radius * math.sin(a)
+            d.rectangle((x - 5, y - 5, x + 5, y + 5), fill=WHITE)
+    img.save(path, optimize=True)
+
+
+def pixelated_watch(shot, cell, gap=4, strap_h=4):
     """The Help screen's chunky watch (android .../WatchDiagram.kt): icon-style body, grey straps,
-    four buttons, the screenshot in its window. Cells are cell px; the screenshot is scaled by a
-    whole number, so its pixels stay even."""
-    shot = screen(name, shot_scale)
-    gap, frame, button_w, button_h = 4 * shot_scale, 3, 2, 4
+    four buttons, the shot (a face image) in its window with gap px around it. Cells are cell px."""
+    frame, button_w, button_h = 3, 2, 4
     in_w, in_h = (shot.width + 2 * gap + cell - 1) // cell, (shot.height + 2 * gap + cell - 1) // cell
     body_w, body_h = in_w + 2 * frame, in_h + 2 * frame
     img = Image.new("RGBA", ((body_w + 2 * button_w) * cell, (body_h + 2 * strap_h) * cell), (0, 0, 0, 0))
@@ -348,7 +400,7 @@ def feature_graphic(path):
     name_block(ImageDraw.Draw(img), 64, 110, 72, 34)
     # Same proportions as the Help screen (10 px cells, screenshot at 1x). A 2x screenshot needs a
     # watch taller than the banner, and any in-between size scales the watch screen unevenly.
-    w = pixelated_watch("emery-1-ready", 10)
+    w = pixelated_watch(screen("emery-1-ready", 1), 10)
     img.paste(w, (W - w.width - 64, (H - w.height) // 2), w)
     img.save(path, optimize=True)
 
@@ -374,7 +426,8 @@ out.mkdir(parents=True, exist_ok=True)
 (out / "phoneScreenshots").mkdir(exist_ok=True)
 Image.open(DOCS / "icon.png").convert("RGB").resize((512, 512), Image.NEAREST).save(out / "icon.png", optimize=True)
 feature_graphic(out / "featureGraphic.png")
-phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/1-snap.png", family, 2.25)
+remote_shutter(out / "phoneScreenshots/1-remote-shutter.png")
+phone_screenshot(["SNAP FROM", "YOUR WRIST"], "emery-2-snap", out / "phoneScreenshots/2-snap.png", family, 2.25)
 phone_screenshot(["YOUR PHONE'S", "NATIVE CAMERA"], "gabbro-1-ready", out / "phoneScreenshots/3-processing.png", couple, 1.85,
                  round_screen=True)
 def pebble_icon(size, path, invert=False):
