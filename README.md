@@ -26,7 +26,7 @@ For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left
 
 To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and turn on **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo more or less as soon as possible after stabilising to give your camera app a bit of time to focus.
 
-Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including from the lock screen. Other camera apps work after a one-time **Set shutter button**. Not on the Play Store yet; for now, install the files from a CI run (see [TESTING.md](TESTING.md)).
+Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including from the lock screen. Other camera apps work after a one-time **Set shutter button**. Not on the Play Store yet; see [Get started](#get-started).
 
 | Pebble Time 2 (emery) | Core 2 Duo (flint) | Pebble Round 2 (gabbro) |
 |:---:|:---:|:---:|
@@ -101,7 +101,7 @@ See [TESTING.md](TESTING.md).
 
 ## Known gaps
 
-- **Shutter detection.** Pixel Camera works out of the box. For other camera apps, choose the camera in Nacashu, tap **Set shutter button**, and tap the shutter once on the see-through layer. Nacashu remembers that button, or just that spot on the screen if the camera doesn't expose the button. Please share the view IDs of other cameras (TESTING.md shows how) so they can work out of the box too.
+- **Shutter detection.** Only Pixel Camera works out of the box; other cameras need the one-time **Set shutter button** step. Nacashu remembers that button, or just that spot on the screen if the camera doesn't expose the button. Please share the view IDs of other cameras (TESTING.md shows how) so they can work out of the box too.
 - **Banking apps.** Some banking apps refuse to run while an accessibility service is on, especially one from an app that wasn't installed from the Play Store. If yours does, turn on **Turn accessibility off when I close Nacashu on my watch** under **Test / Debug** in the phone app. To turn the service back on quickly, set up Android's accessibility shortcut (**Settings > Accessibility > Nacashu > Nacashu shortcut**), then hold both volume keys for 3 seconds.
 
 ## License
