@@ -4,13 +4,21 @@
 
 Nacashu turns your Pebble watch into a remote shutter for your phone's native (or chosen) camera app. The native camera app still takes the photo, so you get to make use of its superior processing.
 
-```mermaid
-flowchart LR
-  W["Watchapp"] -- "AppMessage" --> P["Pebble app"]
-  P -- "PebbleKit 2" --> N["Nacashu (Android)"]
-  N -- "accessibility service clicks the shutter" --> C["Camera app"]
-  N -. "status: vibrate / sound" .-> W
-```
+Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including from the lock screen. Other camera apps work after a one-time **Set shutter button**. Not on the Play Store yet.
+
+## Get started
+
+This is the recommended way to install and set up Nacashu. We'll keep it up to date as Nacashu reaches more app stores.
+
+1. Install the watchapp (`.pbw`) and the phone app (`.apk`). Until Nacashu is on the stores, get both from a CI run; [TESTING.md](TESTING.md) walks through it.
+2. Open Nacashu on the phone and follow the numbered steps there.
+3. Open Nacashu on the watch (allow it in the Pebble app the first time) and press **SELECT**.
+
+## Using the watchapp
+
+| Pebble Time 2 (emery) | Core 2 Duo (flint) | Pebble Round 2 (gabbro) |
+|:---:|:---:|:---:|
+| ![emery](docs/emery-1-ready.png) | ![flint](docs/flint-1-ready.png) | ![gabbro](docs/gabbro-1-ready.png) |
 
 | Button | Press | Hold |
 |---|---|---|
@@ -26,21 +34,15 @@ For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left
 
 To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and turn on **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo more or less as soon as possible after stabilising to give your camera app a bit of time to focus.
 
-Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including from the lock screen. Other camera apps work after a one-time **Set shutter button**. Not on the Play Store yet; see [Get started](#get-started).
-
-| Pebble Time 2 (emery) | Core 2 Duo (flint) | Pebble Round 2 (gabbro) |
-|:---:|:---:|:---:|
-| ![emery](docs/emery-1-ready.png) | ![flint](docs/flint-1-ready.png) | ![gabbro](docs/gabbro-1-ready.png) |
-
-## Get started
-
-This is the recommended way to install and set up Nacashu. We'll keep it up to date as Nacashu reaches more app stores.
-
-1. Install the watchapp (`.pbw`) and the phone app (`.apk`). Until Nacashu is on the stores, get both from a CI run; [TESTING.md](TESTING.md) walks through it.
-2. Open Nacashu on the phone and follow the numbered steps there.
-3. Open Nacashu on the watch (allow it in the Pebble app the first time) and press **SELECT**.
-
 ## How it works
+
+```mermaid
+flowchart LR
+  W["Watchapp"] -- "AppMessage" --> P["Pebble app"]
+  P -- "PebbleKit 2" --> N["Nacashu (Android)"]
+  N -- "accessibility service clicks the shutter" --> C["Camera app"]
+  N -. "status: vibrate / sound" .-> W
+```
 
 - **Watchapp** (`watch/`, C): sends a command when you press a button, and shows and vibrates the result.
 - **Pebble app** (Core Devices): forwards the watchapp's messages to the companion app through [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2), the official Android library for talking to Pebble watchapps.
