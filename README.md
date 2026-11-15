@@ -2,7 +2,7 @@
 
 ![Nacashu: native camera shutter for Pebble watches](docs/header.png)
 
-Nacashu turns a Pebble watch into a remote shutter for your phone's **own** camera app, starting with Pixel Camera. Your camera app still takes the photo, so you keep all of its processing.
+Nacashu turns your Pebble watch into a remote shutter for your phone's native (/chosen) camera app. The native camera app still takes the photo, so you get to make use of its superior processing.
 
 ```
 Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu (Android)
@@ -11,13 +11,13 @@ Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu
   DOWN   = photos       hold DOWN = open camera ◀── status (vibrate) ──  clicks the camera's shutter button
 ```
 
-Press **UP** to cycle the timer through 0, 3, 5, 10 and 30 seconds, and **DOWN** to choose how many photos SELECT takes: 1, 3, 5, 10 or ∞, about a second apart (each photo waits a second after the phone confirms the last one). The watch shows each row of choices with the chosen one on a white pill, and counts the photos beside the shutter. Press any button to stop a countdown or a run of photos (∞ keeps going until you do). Hold **UP** to go back to no timer and one photo, and hold **DOWN** to bring the camera to the front. The watch keeps your choices for next time unless you turn off **Remember watchapp settings** in the phone app. While you use the watchapp, it pings the phone every 7 seconds to keep Bluetooth quick (otherwise the watch may take about 1.4 s to hear the phone, making the first photo late). The pings stop 5 minutes after your last button press.
+Press **UP** to cycle the timer through 0, 3, 5, 10 and 30 seconds, and **DOWN** to choose how many photos SELECT takes: 1, 3, 5, 10 or ∞, each about a second apart. The watch shows each row of choices with the chosen one on a white pill, and counts down the timer / up the number of photos beside the shutter. Press any button to stop a countdown or a run of photos (∞ keeps taking photos until you cancel). Hold **UP** to reset, i.e. go back to no timer and one photo, and hold **DOWN** to bring the camera to the front. The watch remembers your choices for next time unless you turn off **Remember watchapp settings** in the phone app. While you use the watchapp, it pings the phone every 7 seconds to keep Bluetooth quick (otherwise communication between the watch and phone could take over a second, causing inconsistent and lengthy delays between photos). The pings stop 5 minutes after your last button press.
 
-On watches with a speaker (Pebble Time 2 and Core 2 Duo), the timer ticks each second for its last 10 seconds, higher for the last two, a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn them off with **Sounds on the watch** in the phone app. All of them are made in code: the ticks and buzz are notes in `main.c`, and the shutter click comes from `watch/tools/make_shutter_sound.py`.
+On watches with a speaker (Pebble Time 2 and Core 2 Duo), the timer ticks each second for its last 10 seconds (with a higher pitch for the last two), a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn sounds off by toggling the **Sounds on the watch** setting in the phone app. All of the sounds are made in code: the ticks and buzz are notes in `main.c`, and the shutter click comes from `watch/tools/make_shutter_sound.py`.
 
-For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then turn on **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring in https://github.com/Staindk/nacashu/issues/6).
+For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then turn on **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring https://github.com/Staindk/nacashu/issues/6).
 
-To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and turn on **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo.
+To take a photo from any watchface, set Nacashu as a Quick Launch app on the watch (**Settings > Quick Launch**) and turn on **Take photo when quick launching Nacashu on Pebble** in the phone app. Holding that button opens Nacashu, and the phone opens the camera and takes a photo more or less as soon as possible after stabilising to give your camera app a bit of time to focus.
 
 Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including from the lock screen. Other camera apps work after a one-time **Set shutter button**. Not on the Play Store yet; for now, install the files from a CI run (see [TESTING.md](TESTING.md)).
 
@@ -29,7 +29,7 @@ Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including 
 
 - **Watchapp** (`watch/`, C): sends a command when you press a button, and shows and vibrates the result.
 - **Pebble app** (Core Devices): forwards the watchapp's messages to the companion app through [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2), the official Android library for talking to Pebble watchapps.
-- **Companion app** (`android/`, Kotlin): an accessibility service finds the camera app's shutter button and clicks it, the same way [TalkBack](https://support.google.com/accessibility/android/answer/6283677) would. TalkBack is Android's built-in screen reader from Google, and it uses this same accessibility API to press buttons for blind and low-vision users. If the camera app is locked or not open, it opens the camera with the standard camera intent.
+- **Companion app** (`android/`, Kotlin): an accessibility service finds the camera app's shutter button and clicks it, the same way [TalkBack](https://support.google.com/accessibility/android/answer/6283677) would. TalkBack is Google's built-in screen reader, and it uses this same accessibility API to press buttons for blind and low-vision users. If the camera app is locked or not open, it opens the camera with the standard camera intent.
 
 ### Why not simpler approaches?
 
@@ -44,7 +44,7 @@ The companion app asks for accessibility access, so it's kept small enough to re
 
 - The watchapp declares its Pebble app permissions in `watch/package.json` (`"usesPermissions": []`). The only one it gets is exchanging messages with this companion app, which the Pebble app adds because of the `companionApp` entry and asks you to allow.
 - Its only dependency is the official [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2) library, and it has no internet permission.
-- It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Set shutter button** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot. The layer disappears a few seconds after that one tap, or after a minute.
+- It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Set shutter button** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot.
 - The setup screen uses plain Android views, so there's no UI library to read through.
 - Before it opens Android's accessibility settings, the app explains what that access is used for and asks you to agree. See also [PRIVACY.md](PRIVACY.md).
 - The **Help** switch next to the app's name shows a short explainer under each setting, plus a few About topics. All the copy lives in `Help.kt`. The "Using the watchapp" topic puts `docs/emery-1-ready.png` in a chunky pixel watch shaped like the app icon's. The build copies the screenshot in, so it always shows the latest one.
