@@ -27,6 +27,10 @@ The Pebble appstore description lives in `watch/store/description.txt` (plain te
 
 Keep "Pebble" out of the app name (Pebble's trademark rules); saying the app works with Pebble watches in the description is fine.
 
+## Signing
+
+CI signs the companion app with a permanent key, so each new APK installs as an update over the last one. The key lives only in this repo's `NACASHU_KEYSTORE_BASE64` and `NACASHU_KEYSTORE_PASSWORD` secrets, never in the repo itself. Forks and local builds don't have those secrets, so they use the standard Android debug key.
+
 ## First-time setup in Play Console
 
 Done once, in this order:
