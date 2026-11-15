@@ -37,9 +37,8 @@ Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including 
 This is the recommended way to install and set up Nacashu. We'll keep it up to date as Nacashu reaches more app stores.
 
 1. Install the watchapp (`.pbw`) and the phone app (`.apk`). Until Nacashu is on the stores, get both from a CI run; [TESTING.md](TESTING.md) walks through it.
-2. Open Nacashu on the phone and tap **1. Turn on accessibility service**.
-3. Tap **2. Choose camera app**. For any camera other than Pixel Camera, also tap **3. Set shutter button** and tap your camera's shutter once.
-4. Open Nacashu on the watch (allow it in the Pebble app the first time) and press **SELECT**.
+2. Open Nacashu on the phone and follow the numbered steps there.
+3. Open Nacashu on the watch (allow it in the Pebble app the first time) and press **SELECT**.
 
 ## How it works
 
