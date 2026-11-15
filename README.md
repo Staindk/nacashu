@@ -2,16 +2,23 @@
 
 ![Nacashu: native camera shutter for Pebble watches](docs/header.png)
 
-Nacashu turns your Pebble watch into a remote shutter for your phone's native (/chosen) camera app. The native camera app still takes the photo, so you get to make use of its superior processing.
+Nacashu turns your Pebble watch into a remote shutter for your phone's native (or chosen) camera app. The native camera app still takes the photo, so you get to make use of its superior processing.
 
-```
-Watchapp ──AppMessage──▶ Pebble app ──PebbleKit 2──▶ Nacashu (Android)
-  SELECT = snap (press again to stop)               │ accessibility service
-  UP     = timer        hold UP   = reset            ▼
-  DOWN   = photos       hold DOWN = open camera ◀── status (vibrate) ──  clicks the camera's shutter button
+```mermaid
+flowchart LR
+  W["Watchapp"] -- "AppMessage" --> P["Pebble app"]
+  P -- "PebbleKit 2" --> N["Nacashu (Android)"]
+  N -- "accessibility service clicks the shutter" --> C["Camera app"]
+  N -. "status: vibrate / sound" .-> W
 ```
 
-Press **UP** to cycle the timer through 0, 3, 5, 10 and 30 seconds, and **DOWN** to choose how many photos SELECT takes: 1, 3, 5, 10 or ∞, each about a second apart. The watch shows each row of choices with the chosen one on a white pill, and counts down the timer / up the number of photos beside the shutter. Press any button to stop a countdown or a run of photos (∞ keeps taking photos until you cancel). Hold **UP** to reset, i.e. go back to no timer and one photo, and hold **DOWN** to bring the camera to the front. The watch remembers your choices for next time unless you turn off **Remember watchapp settings** in the phone app. While you use the watchapp, it pings the phone every 7 seconds to keep Bluetooth quick (otherwise communication between the watch and phone could take over a second, causing inconsistent and lengthy delays between photos). The pings stop 5 minutes after your last button press.
+| Button | Press | Hold |
+|---|---|---|
+| SELECT | Take photo(s), press again to stop | |
+| UP | Timer: 0, 3, 5, 10 or 30 s | Reset timer and photo count |
+| DOWN | Photos: 1, 3, 5, 10 or ∞ | Open the camera |
+
+Press **UP** to cycle the timer through 0, 3, 5, 10 and 30 seconds, and **DOWN** to choose how many photos SELECT takes: 1, 3, 5, 10 or ∞, each about a second apart. The watch shows each row of choices with the chosen one on a white pill, and counts down the timer / up the number of photos beside the shutter. Press any button to stop a countdown or a run of photos (∞ keeps taking photos until you cancel). Hold **UP** to reset, i.e. go back to no timer and one photo, and hold **DOWN** to bring the camera to the front. The watch remembers your choices for next time unless you turn off **Remember watchapp settings** in the phone app. While you use the watchapp, it pings the phone every 7 seconds to keep the Bluetooth connection in low-latency mode (otherwise the watch only listens for the phone about every 1.4 seconds, causing long and uneven delays between photos). The pings stop 5 minutes after your last button press.
 
 On watches with a speaker (Pebble Time 2 and Core 2 Duo), the timer ticks each second for its last 10 seconds (with a higher pitch for the last two), a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn sounds off by toggling the **Sounds on the watch** setting in the phone app. All of the sounds are made in code: the ticks and buzz are notes in `main.c`, and the shutter click comes from `watch/tools/make_shutter_sound.py`.
 
@@ -25,11 +32,20 @@ Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including 
 |:---:|:---:|:---:|
 | ![emery](docs/emery-1-ready.png) | ![flint](docs/flint-1-ready.png) | ![gabbro](docs/gabbro-1-ready.png) |
 
+## Get started
+
+1. Install the watchapp (`.pbw`) and the phone app (`.apk`). Until Nacashu is on the stores, get both from a CI run; [TESTING.md](TESTING.md) walks through it.
+2. Open Nacashu on the phone and tap **1. Turn on accessibility service**.
+3. Tap **2. Choose camera app**. For any camera other than Pixel Camera, also tap **3. Set shutter button** and tap your camera's shutter once.
+4. Open Nacashu on the watch (allow it in the Pebble app the first time) and press **SELECT**.
+
 ## How it works
 
 - **Watchapp** (`watch/`, C): sends a command when you press a button, and shows and vibrates the result.
 - **Pebble app** (Core Devices): forwards the watchapp's messages to the companion app through [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2), the official Android library for talking to Pebble watchapps.
 - **Companion app** (`android/`, Kotlin): an accessibility service finds the camera app's shutter button and clicks it, the same way [TalkBack](https://support.google.com/accessibility/android/answer/6283677) would. TalkBack is Google's built-in screen reader, and it uses this same accessibility API to press buttons for blind and low-vision users. If the camera app is locked or not open, it opens the camera with the standard camera intent.
+
+<img src="fastlane/metadata/android/en-US/images/phoneScreenshots/4-main-screen.png" alt="The Nacashu phone app: status card, setup steps and settings" width="300">
 
 ### Why not simpler approaches?
 
@@ -47,7 +63,6 @@ The companion app asks for accessibility access, so it's kept small enough to re
 - It only reads the camera app's screen, and only when the watch asks it to press the shutter. During the one-time **Set shutter button** setup, it shows a see-through layer over your camera and notes where you tap it and which camera button is under that spot.
 - The setup screen uses plain Android views, so there's no UI library to read through.
 - Before it opens Android's accessibility settings, the app explains what that access is used for and asks you to agree. See also [PRIVACY.md](PRIVACY.md).
-- The **Help** switch next to the app's name shows a short explainer under each setting, plus a few About topics. All the copy lives in `Help.kt`. The "Using the watchapp" topic puts `docs/emery-1-ready.png` in a chunky pixel watch shaped like the app icon's. The build copies the screenshot in, so it always shows the latest one.
 
 ## Layout
 
@@ -69,16 +84,14 @@ fastlane/         Google Play store listing: text, icon, feature graphic and scr
 - **Companion:** `cd android && ./gradlew assembleDebug`.
 - **CI:** every pull request and every push to `main` produces both files as workflow artifacts.
 
-### Signing
-
-CI signs the companion app with a permanent key, so each new APK installs as an update over the last one. This is already set up: the key lives only in this repo's `NACASHU_KEYSTORE_BASE64` and `NACASHU_KEYSTORE_PASSWORD` secrets, never in the repo itself. Forks and local builds don't have those secrets, so they use the standard Android debug key.
+CI signs the companion app with a permanent key kept only in this repo's secrets; forks and local builds use the standard Android debug key. See [RELEASING.md](RELEASING.md#signing).
 
 ### Build files you might wonder about
 
-These are standard, committed on purpose, and not generated by us:
+These are standard and committed on purpose:
 
-- **`android/gradlew`, `android/gradlew.bat`, `android/gradle/wrapper/`:** the [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html). The scripts (`gradlew` for macOS and Linux, `gradlew.bat` for Windows) and the small `gradle-wrapper.jar` download the exact Gradle version pinned in `gradle-wrapper.properties`, so everyone builds with the same version without installing Gradle. Gradle's docs recommend adding these files to version control, and [Android's build docs](https://developer.android.com/build#wrapper-file) describe the wrapper as "a small application included with your source code". CI checks the jar's checksum against Gradle's published list ([wrapper validation](https://github.com/gradle/actions/blob/main/docs/wrapper-validation.md)).
-- **`watch/wscript`:** the Pebble SDK's build script, for the [waf](https://waf.io/) build tool. `pebble build` reads it to compile the watchapp. Ours is the standard one, copied from the PebbleKit 2 sample watchapp.
+- **`android/gradlew`, `android/gradlew.bat`, `android/gradle/wrapper/`:** the [Gradle Wrapper](https://docs.gradle.org/current/userguide/gradle_wrapper.html), which downloads the exact Gradle version pinned in `gradle-wrapper.properties`. CI checks the jar's checksum against Gradle's published list ([wrapper validation](https://github.com/gradle/actions/blob/main/docs/wrapper-validation.md)).
+- **`watch/wscript`:** the Pebble SDK's standard [waf](https://waf.io/) build script, copied from the PebbleKit 2 sample watchapp.
 
 ## Testing
 
