@@ -34,6 +34,8 @@ Status: version 0.3. It works on a Pixel 10 Pro with a Pebble Time 2, including 
 
 ## Get started
 
+This is the recommended way to install and set up Nacashu. We'll keep it up to date as Nacashu reaches more app stores.
+
 1. Install the watchapp (`.pbw`) and the phone app (`.apk`). Until Nacashu is on the stores, get both from a CI run; [TESTING.md](TESTING.md) walks through it.
 2. Open Nacashu on the phone and tap **1. Turn on accessibility service**.
 3. Tap **2. Choose camera app**. For any camera other than Pixel Camera, also tap **3. Set shutter button** and tap your camera's shutter once.
@@ -100,6 +102,7 @@ See [TESTING.md](TESTING.md).
 ## Known gaps
 
 - **Shutter detection.** Pixel Camera works out of the box. For other camera apps, choose the camera in Nacashu, tap **Set shutter button**, and tap the shutter once on the see-through layer. Nacashu remembers that button, or just that spot on the screen if the camera doesn't expose the button. Please share the view IDs of other cameras (TESTING.md shows how) so they can work out of the box too.
+- **Banking apps.** Some banking apps refuse to run while an accessibility service is on, especially one from an app that wasn't installed from the Play Store. If yours does, turn on **Turn accessibility off when I close Nacashu on my watch** under **Test / Debug** in the phone app. To turn the service back on quickly, set up Android's accessibility shortcut (**Settings > Accessibility > Nacashu > Nacashu shortcut**), then hold both volume keys for 3 seconds.
 
 ## License
 
