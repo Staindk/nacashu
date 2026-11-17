@@ -1,0 +1,10 @@
+%% Source for the README's "How it works" diagram. To regenerate the SVGs:
+%%   npx @mermaid-js/mermaid-cli -i docs/how-it-works.mmd -o docs/how-it-works-light.svg -t default -b transparent -c cfg.json
+%%   npx @mermaid-js/mermaid-cli -i docs/how-it-works.mmd -o docs/how-it-works-dark.svg -t dark -b transparent -c cfg.json
+%% where cfg.json is {"htmlLabels":false,"flowchart":{"htmlLabels":false}}, so labels are plain SVG text
+%% (some viewers, such as the GitHub mobile app, don't draw HTML labels inside SVGs).
+flowchart LR
+  W["Watchapp"] -- "AppMessage" --> P["Pebble app"]
+  P -- "PebbleKit 2" --> N["Nacashu (Android)"]
+  N -- "accessibility service clicks the shutter" --> C["Camera app"]
+  N -. "status: vibrate / sound" .-> W
