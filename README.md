@@ -36,13 +36,12 @@ To take a photo from any watchface, set Nacashu as a Quick Launch app on the wat
 
 ## How it works
 
-```mermaid
-flowchart LR
-  W["Watchapp"] -- "AppMessage" --> P["Pebble app"]
-  P -- "PebbleKit 2" --> N["Nacashu (Android)"]
-  N -- "accessibility service clicks the shutter" --> C["Camera app"]
-  N -. "status: vibrate / sound" .-> W
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/how-it-works-dark.svg">
+  <img src="docs/how-it-works-light.svg" alt="Diagram: the watchapp sends an AppMessage to the Pebble app, which passes it to Nacashu on Android through PebbleKit 2. Nacashu's accessibility service clicks the camera app's shutter, then sends a vibrate or sound status back to the watch.">
+</picture>
+
+<sub>Diagram source: [docs/how-it-works.mmd](docs/how-it-works.mmd)</sub>
 
 - **Watchapp** (`watch/`, C): sends a command when you press a button, and shows and vibrates the result.
 - **Pebble app** (Core Devices): forwards the watchapp's messages to the companion app through [PebbleKit 2](https://github.com/pebble-dev/PebbleKitAndroid2), the official Android library for talking to Pebble watchapps.
@@ -75,7 +74,8 @@ watch/tools/      fake_phone.py: plays the phone side against the emulator. upda
                   make_name_images.py: draws the pixel-font app name for the watch and the phone app.
 android/          Companion app (Kotlin, minSdk 29).
 docs/             Emulator screenshots, which CI commits to a PR when they change, and icon.png,
-                  the 32x32 app icon the Android launcher icon is drawn from.
+                  the 32x32 app icon the Android launcher icon is drawn from. how-it-works.mmd is the
+                  README diagram's source, exported to the two SVGs next to it.
 fastlane/         Google Play store listing: text, icon, feature graphic and screenshots. See RELEASING.md.
 .github/          CI: builds the .pbw and .apk and takes emulator screenshots, for pull requests and main.
                   On main it also builds the signed .aab that goes to Google Play.
