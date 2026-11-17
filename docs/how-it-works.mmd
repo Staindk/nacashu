@@ -3,8 +3,8 @@
 %%   npx @mermaid-js/mermaid-cli -i docs/how-it-works.mmd -o docs/how-it-works-dark.svg -t dark -b transparent -c cfg.json
 %% where cfg.json is {"htmlLabels":false,"flowchart":{"htmlLabels":false}}, so labels are plain SVG text
 %% (some viewers, such as the GitHub mobile app, don't draw HTML labels inside SVGs).
-flowchart LR
+flowchart TB
   W["Watchapp"] -- "AppMessage" --> P["Pebble app"]
   P -- "PebbleKit 2" --> N["Nacashu (Android)"]
-  N -- "accessibility service clicks the shutter" --> C["Camera app"]
+  N -- "accessibility service<br/>clicks the shutter" --> C["Camera app"]
   N -. "status: vibrate / sound" .-> W
