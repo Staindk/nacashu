@@ -38,7 +38,7 @@ To take a photo from any watchface, set Nacashu as a Quick Launch app on the wat
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/how-it-works-dark.svg">
-  <img src="docs/how-it-works-light.svg" alt="Diagram: the watchapp sends an AppMessage to the Pebble app, which passes it to Nacashu on Android through PebbleKit 2. Nacashu's accessibility service clicks the camera app's shutter, then sends a vibrate or sound status back to the watch.">
+  <img src="docs/how-it-works-light.svg" width="360" alt="Diagram: the watchapp sends an AppMessage to the Pebble app, which passes it to Nacashu on Android through PebbleKit 2. Nacashu's accessibility service clicks the camera app's shutter, then sends a vibrate or sound status back to the watch.">
 </picture>
 
 <sub>Diagram source: [docs/how-it-works.mmd](docs/how-it-works.mmd)</sub>
