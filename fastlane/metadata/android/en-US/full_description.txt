@@ -6,7 +6,7 @@ On the watch:
 • DOWN picks how many photos SELECT takes: 1, 3, 5, 10 or ∞, each photo about a second apart
 • Hold UP to reset (go back to no timer and one photo), hold DOWN to bring the camera to the front
 
-The watch vibrates and shows whether the photo was taken. On Pebble Time 2 and Core 2 Duo, optional sounds tick down the timer and click when the photo is taken.
+The watch vibrates and shows whether the photo was taken. On Pebble Time 2 and Pebble 2 Duo, optional sounds tick down the timer and click when the photo is taken.
 
 Set Nacashu as a Quick Launch app on the watch and turn on "Take photo when quick launching" to take a photo from any watchface.
 

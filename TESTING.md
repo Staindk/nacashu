@@ -4,7 +4,7 @@ You need the `.pbw` and `.apk` from a CI run (or your own build), an Android pho
 
 | File | What it is |
 |------|------------|
-| `nacashu.pbw` | The watchapp. It's built for Time 2 (emery), Core 2 Duo (flint) and Round 2 (gabbro), for current watch firmware. |
+| `nacashu.pbw` | The watchapp. It's built for Time 2 (emery), Pebble 2 Duo (flint) and Round 2 (gabbro), for current watch firmware. |
 | `nacashu.apk` | The companion app. CI runs on this repo sign it with the project's permanent key, so a new APK installs over the last one. Forks and local builds use the standard debug key. |
 
 ## 1. Install

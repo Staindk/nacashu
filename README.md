@@ -16,7 +16,7 @@ This is the recommended way to install and set up Nacashu. We'll keep it up to d
 
 ## Using the watchapp
 
-| Pebble Time 2 (emery) | Core 2 Duo (flint) | Pebble Round 2 (gabbro) |
+| Pebble Time 2 (emery) | Pebble 2 Duo (flint) | Pebble Round 2 (gabbro) |
 |:---:|:---:|:---:|
 | ![emery](docs/emery-1-ready.png) | ![flint](docs/flint-1-ready.png) | ![gabbro](docs/gabbro-1-ready.png) |
 
@@ -28,7 +28,7 @@ This is the recommended way to install and set up Nacashu. We'll keep it up to d
 
 Photos in a run are about a second apart, and the watch counts down the timer and up the photos beside the shutter. Press any button to stop a countdown or a run of photos (∞ keeps going until you do). The watch remembers your choices for next time unless you turn off **Remember watchapp settings** in the phone app. While you use the watchapp, it pings the phone every 7 seconds to keep the Bluetooth connection in low-latency mode (otherwise the watch only listens for the phone about every 1.4 seconds, causing long and uneven delays between photos). The pings stop 5 minutes after your last button press.
 
-On watches with a speaker (Pebble Time 2 and Core 2 Duo), the timer ticks each second for its last 10 seconds (with a higher pitch for the last two), a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn sounds off by toggling the **Sounds on the watch** setting in the phone app. All of the sounds are made in code: the ticks and buzz are notes in `main.c`, and the shutter click comes from `watch/tools/make_shutter_sound.py`.
+On watches with a speaker (Pebble Time 2 and Pebble 2 Duo), the timer ticks each second for its last 10 seconds (with a higher pitch for the last two), a shutter click plays when the photo is taken, and a buzz plays when something goes wrong. Turn sounds off by toggling the **Sounds on the watch** setting in the phone app. All of the sounds are made in code: the ticks and buzz are notes in `main.c`, and the shutter click comes from `watch/tools/make_shutter_sound.py`.
 
 For lefty mode, turn on PebbleOS's own **Settings > Display > Orientation > Left-Handed**, then turn on **Lefty** in the phone app so the button labels move to the left (apps can't read the watch setting yet - keep monitoring https://github.com/Staindk/nacashu/issues/6).
 
@@ -69,7 +69,7 @@ The companion app asks for accessibility access, so it's kept small enough to re
 ## Layout
 
 ```
-watch/            Watchapp (Pebble SDK 3). Targets emery (Time 2), flint (Core 2 Duo), gabbro (Round 2).
+watch/            Watchapp (Pebble SDK 3). Targets emery (Time 2), flint (Pebble 2 Duo), gabbro (Round 2).
 watch/tools/      fake_phone.py: plays the phone side against the emulator. update_screenshots.py: used by CI.
                   make_name_images.py: draws the pixel-font app name for the watch and the phone app.
 android/          Companion app (Kotlin, minSdk 29).
